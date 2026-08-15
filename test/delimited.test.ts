@@ -71,6 +71,52 @@ describe('parseDelimited', () => {
   });
 });
 
+describe('parseDelimited with a space delimiter', () => {
+  it('splits on single spaces', () => {
+    expect(parseDelimited('a b c\n1 2 3', ' ')).toEqual([
+      ['a', 'b', 'c'],
+      ['1', '2', '3'],
+    ]);
+  });
+
+  it('collapses runs of spaces into one separator', () => {
+    expect(parseDelimited('a   b  c', ' ')).toEqual([['a', 'b', 'c']]);
+  });
+
+  it('keeps column-aligned rows the same width', () => {
+    const text = ['NAME    QTY   UNIT', 'apple     30  kg', 'kiwi       9  kg'].join('\n');
+    expect(parseDelimited(text, ' ')).toEqual([
+      ['NAME', 'QTY', 'UNIT'],
+      ['apple', '30', 'kg'],
+      ['kiwi', '9', 'kg'],
+    ]);
+  });
+
+  it('treats a leading run as indentation, not an empty first field', () => {
+    expect(parseDelimited('   a b', ' ')).toEqual([['a', 'b']]);
+  });
+
+  it('drops trailing padding rather than adding an empty field', () => {
+    expect(parseDelimited('a b   \nc d', ' ')).toEqual([
+      ['a', 'b'],
+      ['c', 'd'],
+    ]);
+  });
+
+  it('keeps spaces inside quoted fields', () => {
+    expect(parseDelimited('"New York"  US', ' ')).toEqual([['New York', 'US']]);
+  });
+
+  it('reduces a line of nothing but spaces to a blank row', () => {
+    // Same shape a blank line produces under any other delimiter.
+    expect(parseDelimited('a b\n   \nc d', ' ')).toEqual([['a', 'b'], [''], ['c', 'd']]);
+  });
+
+  it('leaves other delimiters uncollapsed', () => {
+    expect(parseDelimited('a,,b', ',')).toEqual([['a', '', 'b']]);
+  });
+});
+
 describe('detectDelimiter', () => {
   it('detects comma', () => {
     expect(detectDelimiter('a,b,c\n1,2,3')).toBe('comma');
@@ -112,6 +158,24 @@ describe('detectDelimiter', () => {
 
   it('handles CRLF samples', () => {
     expect(detectDelimiter('a\tb\r\n1\t2\r\n')).toBe('tab');
+  });
+
+  it('falls back to space for column-aligned output', () => {
+    expect(detectDelimiter('NAME  QTY\napple  30\nkiwi    9')).toBe('space');
+  });
+
+  it('prefers a real delimiter over space', () => {
+    expect(detectDelimiter('a b,c d\ne f,g h')).toBe('comma');
+  });
+
+  it('does not read prose as space-separated', () => {
+    // Wrapped prose: the word count differs from line to line.
+    expect(detectDelimiter('the quick brown fox\njumps over the lazy dog\nagain')).toBe('comma');
+  });
+
+  it('does not read a single line of words as space-separated', () => {
+    // One line is never enough evidence — a sentence would qualify.
+    expect(detectDelimiter('just some prose here')).toBe('comma');
   });
 });
 

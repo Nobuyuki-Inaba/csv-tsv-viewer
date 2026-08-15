@@ -9,7 +9,10 @@ const labels: WebviewLabels = {
   tab: 'Tab',
   semicolon: 'Semicolon',
   pipe: 'Pipe',
+  space: 'Space',
   headerRow: 'Header row',
+  transpose: 'Transpose',
+  transposeTitle: 'Swap rows and columns.',
   filterPlaceholder: 'Filter…',
   copyExcel: 'Copy for Excel',
   copyExcelTitle: 'Copy for Excel',
@@ -82,6 +85,7 @@ const toolbarButton = (label: string) =>
   ) as HTMLButtonElement;
 const excelButton = () => toolbarButton('Copy for Excel');
 const markdownButton = () => toolbarButton('Copy as Markdown');
+const transposeButton = () => toolbarButton('Transpose');
 
 describe('mount', () => {
   it('builds the toolbar before any data arrives', () => {
@@ -113,7 +117,13 @@ describe('mount', () => {
   it('populates the delimiter select and marks the current one', () => {
     update(init(sample, { delimiter: 'tab' }));
     const select = root.querySelector('select') as HTMLSelectElement;
-    expect([...select.options].map((o) => o.value)).toEqual(['comma', 'tab', 'semicolon', 'pipe']);
+    expect([...select.options].map((o) => o.value)).toEqual([
+      'comma',
+      'tab',
+      'semicolon',
+      'pipe',
+      'space',
+    ]);
     expect(select.value).toBe('tab');
   });
 
@@ -154,6 +164,86 @@ describe('header toggle', () => {
 
     expect(headerCells()).toEqual(['A', 'B']);
     expect(dataRows()[0]).toEqual(['name', 'qty']);
+  });
+});
+
+describe('transpose', () => {
+  it('swaps rows and columns, first row becoming the header', () => {
+    update(init(sample));
+    transposeButton().click();
+
+    expect(headerCells()).toEqual(['name', 'Alice', 'bob', 'Carol']);
+    expect(dataRows()).toEqual([['qty', '30', '9', '100']]);
+  });
+
+  it('restores the original orientation on a second click', () => {
+    update(init(sample));
+    transposeButton().click();
+    transposeButton().click();
+
+    expect(headerCells()).toEqual(['name', 'qty']);
+    expect(dataRows()).toHaveLength(3);
+  });
+
+  it('marks the button as pressed while transposed', () => {
+    update(init(sample));
+    expect(transposeButton().getAttribute('aria-pressed')).toBe('false');
+
+    transposeButton().click();
+    expect(transposeButton().getAttribute('aria-pressed')).toBe('true');
+    expect(transposeButton().classList.contains('active')).toBe(true);
+  });
+
+  it('updates the row and column count', () => {
+    update(init(sample));
+    transposeButton().click();
+    expect(root.querySelector('.status')?.textContent).toBe('1 rows × 4 columns');
+  });
+
+  it('clears the sort, which belonged to the old columns', () => {
+    update(init(sample));
+    (root.querySelectorAll('thead th.head')[1] as HTMLElement).click();
+    transposeButton().click();
+
+    expect(root.querySelector('thead th.head .arrow')).toBeNull();
+  });
+
+  it('clears the filter, which selected the old rows', () => {
+    update(init(sample));
+    const filter = root.querySelector('.filter') as HTMLInputElement;
+    filter.value = 'Alice';
+    filter.dispatchEvent(new Event('input'));
+
+    transposeButton().click();
+
+    expect(filter.value).toBe('');
+    expect(dataRows()).toEqual([['qty', '30', '9', '100']]);
+  });
+
+  it('copies the transposed shape', () => {
+    update(init(sample));
+    transposeButton().click();
+    excelButton().click();
+
+    expect(sent).toContainEqual({
+      type: 'copy',
+      text: 'name\tAlice\tbob\tCarol\r\nqty\t30\t9\t100',
+    });
+  });
+
+  it('resets to the original orientation when new data arrives', () => {
+    update(init(sample));
+    transposeButton().click();
+    update(init(sample));
+
+    expect(headerCells()).toEqual(['name', 'qty']);
+    expect(transposeButton().getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('does nothing harmful on an empty table', () => {
+    update(init([]));
+    transposeButton().click();
+    expect((root.querySelector('.empty') as HTMLElement).hidden).toBe(false);
   });
 });
 

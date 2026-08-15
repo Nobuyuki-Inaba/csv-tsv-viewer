@@ -3,6 +3,15 @@
 All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.0.2] - 2026-08-15
+
+### Added
+
+- Space as a delimiter, for column-aligned output. A run of spaces counts as one separator and
+  leading indentation is ignored. Auto-detection only falls back to space when no other delimiter
+  fits and every sampled line has the same field count, so prose is not read as a table.
+- **Transpose** button in the table toolbar — swaps rows and columns, resetting the sort and filter.
+
 ## [0.0.1]
 
 ### Added

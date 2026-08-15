@@ -16,6 +16,12 @@ Select CSV or TSV data in any editor, right-click, and choose **CSV/TSV: Preview
 Table**. The delimiter is guessed from the selection by default (comma, tab, semicolon or pipe),
 and can be pinned in settings.
 
+Space-separated text works too — pick **Space** in the toolbar, or set
+`csvTsvViewer.selectionDelimiter` to `space`. A run of spaces counts as one separator and leading
+indentation is ignored, so column-aligned output (`ps`, `df`, a pasted fixed-width report) lines up
+as a table. Auto-detection only falls back to space when no other delimiter fits and every sampled
+line breaks into the same number of fields, so ordinary prose is not mistaken for a table.
+
 The menu item only appears when text is actually selected. While the preview is open it follows
 the selection — select a different block and the table repaints.
 
@@ -41,6 +47,8 @@ All three entry points share one view:
   and blank cells always sort last. Sorting and filtering apply to the whole file, not just the
   current page.
 - Filter box, matching case-insensitively across every column.
+- **Transpose** — swap rows and columns, for reading one wide record down the screen. Click again
+  to swap back. The sort and filter reset, because both referred to the previous orientation.
 - **Copy for Excel** — tab-separated text that pastes straight into Excel or Google Sheets cells.
 - **Copy as Markdown** — a GitHub-flavored Markdown table, with pipes escaped and cell newlines
   turned into `<br>`.
@@ -62,7 +70,7 @@ via the right-click command or *Reopen Editor With…*.
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `csvTsvViewer.selectionDelimiter` | `auto` | Delimiter for selection and clipboard previews: `auto`, `comma`, `tab`, `semicolon`, `pipe`. |
+| `csvTsvViewer.selectionDelimiter` | `auto` | Delimiter for selection and clipboard previews: `auto`, `comma`, `tab`, `semicolon`, `pipe`, `space`. |
 | `csvTsvViewer.hasHeader` | `true` | Treat the first row as a header row. |
 | `csvTsvViewer.pageSize` | `200` | Rows displayed per page. |
 | `csvTsvViewer.encoding` | `auto` | File encoding: `auto` (BOM, then UTF-8, then Shift_JIS), `utf8`, `shift_jis`. |

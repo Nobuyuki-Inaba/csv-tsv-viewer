@@ -1,0 +1,6 @@
+NAME       QTY  UNIT  PRICE   NOTE
+apple       30  kg      480   in stock
+kiwi         9  kg      620   low
+"green tea"  5  box    1200   ordered
+melon      120  kg     2400   in stock
+rice       300  kg      950   in stock

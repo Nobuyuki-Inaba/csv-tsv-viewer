@@ -70,7 +70,11 @@ under TS7.
 Marketplace under MIT, so anything bundled must be permissively licensed.
 
 - The delimited-text parser (`src/delimited.ts`) is a port of `simple-excel-editor/src/CsvUtils.ts`,
-  generalized from a hardcoded comma to a delimiter parameter.
+  generalized from a hardcoded comma to a delimiter parameter. One delimiter is not literal: a
+  space collapses runs and skips leading indentation, since column-aligned text is the only reason
+  to choose it. For the same reason space is excluded from `detectDelimiter`'s scoring loop and
+  reachable only through the strict `looksSpaceSeparated` fallback — scoring it against the
+  punctuation delimiters would turn every prose selection into a wide table.
 - The grid is hand-rolled in `src/webview/`, not a third-party grid library.
 - Encoding uses the platform `TextDecoder` (which includes `shift_jis`).
 
@@ -120,7 +124,7 @@ and excludes the SVG and `scripts/`.
 | `src/CsvViewProvider.ts` | Feature B: `CustomReadonlyEditorProvider` + file watcher |
 | `src/webviewHtml.ts` | CSP-locked HTML shell |
 | `src/shared/protocol.ts` | Host ↔ webview message and label types |
-| `src/shared/table.ts` | Pure sort/filter/measure/paging/clipboard-format helpers |
+| `src/shared/table.ts` | Pure sort/filter/measure/paging/transpose/clipboard-format helpers |
 | `src/i18n.ts` | Runtime en/ja strings, keyed off `csvTsvViewer.language` |
 | `src/webview/render.ts` | The table renderer; owns all view state |
 | `test/` | vitest specs — node for pure modules, jsdom for `render.ts` |
@@ -133,8 +137,10 @@ it that way so they stay testable.
 ### Host ↔ webview split
 
 The host owns file I/O and parsing; the webview owns all view state (sort, filter, header toggle,
-scroll window). The host re-parses only when the delimiter changes or the file is reloaded, and
-both cases go through `bindTableWebview`, which is shared by the panel and the custom editor.
+transpose, scroll window). The host re-parses only when the delimiter changes or the file is
+reloaded, and both cases go through `bindTableWebview`, which is shared by the panel and the custom
+editor. Transpose is deliberately *not* a host round-trip: `render.ts` keeps the parsed rows in
+`sourceRows` and derives `allRows` from them, so the swap costs no re-parse.
 
 Messages host → webview: `init`. Webview → host: `ready`, `setDelimiter`, `copy`, `openSettings`.
 
@@ -145,7 +151,8 @@ row set across all pages, not the visible page.
 Paging, sorting and filtering all happen in the webview over the full row set — the host never
 sends a page. `view` holds source row indices after filtering and sorting; `pageSlice` cuts the
 current page out of it; the renderer then windows *that* so a large `pageSize` stays responsive.
-Because indices are carried through, the gutter always shows the original file row number.
+Because indices are carried through, the gutter always shows the original file row number — except
+while transposed, where a "row" is an original column and the number is its position instead.
 
 Cell values are untrusted input: the renderer writes them with `textContent`, never `innerHTML`,
 and the webview runs under a nonce CSP with `default-src 'none'`.

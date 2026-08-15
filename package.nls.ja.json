@@ -2,7 +2,7 @@
   "command.previewSelection.title": "CSV/TSV: 選択範囲を表として表示",
   "command.previewClipboard.title": "CSV/TSV: クリップボードを表として表示",
   "command.openFile.title": "CSV/TSV: 表として表示",
-  "config.selectionDelimiter.description": "選択範囲またはクリップボードをプレビューする際の区切り文字。\"auto\" は内容から自動判定します。",
+  "config.selectionDelimiter.description": "選択範囲またはクリップボードをプレビューする際の区切り文字。\"auto\" は内容から自動判定し、他の区切り文字が当てはまらない場合にのみ \"space\" を選びます。\"space\" は連続するスペースをまとめて 1 つの区切りとして扱います（桁揃えされた出力向け）。",
   "config.hasHeader.description": "最初の行をヘッダ行として扱います。",
   "config.pageSize.description": "1ページに表示する行数。",
   "config.encoding.description": "ファイルを開く際の文字エンコーディング。\"auto\" は BOM を優先し、UTF-8 で読めない場合は Shift_JIS として解釈します。",

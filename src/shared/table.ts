@@ -147,6 +147,15 @@ export function toMarkdown(header: string[], rows: string[][]): string {
   ].join('\n');
 }
 
+/**
+ * Swap rows and columns. Short rows are padded with empty cells so the result
+ * is rectangular even when the source was ragged.
+ */
+export function transpose(rows: string[][]): string[][] {
+  const width = rows.reduce((max, row) => Math.max(max, row.length), 0);
+  return Array.from({ length: width }, (_, col) => rows.map((row) => row[col] ?? ''));
+}
+
 /** Total pages for `total` rows, never less than one so the pager always reads "1 / 1". */
 export function pageCount(total: number, pageSize: number): number {
   if (pageSize <= 0) return 1;

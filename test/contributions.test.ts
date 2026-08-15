@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { DELIMITERS } from '../src/delimited';
 
 const read = (name: string): Record<string, unknown> =>
   JSON.parse(readFileSync(fileURLToPath(new URL(`../${name}`, import.meta.url)), 'utf8'));
@@ -11,7 +12,7 @@ const pkg = read('package.json') as {
     customEditors: { viewType: string; priority?: string; selector: unknown[] }[];
     commands: { command: string; title: string }[];
     menus: Record<string, { command: string; when?: string }[]>;
-    configuration: { properties: Record<string, { description: string }> };
+    configuration: { properties: Record<string, { description: string; enum?: string[] }> };
   };
 };
 
@@ -84,6 +85,13 @@ describe('manifest consistency', () => {
         expect(declared).toContain(item.command);
       }
     }
+  });
+
+  it('offers every supported delimiter in the settings enum', () => {
+    // The setting and the parser must agree, or a configured value silently
+    // falls through to the default.
+    const setting = pkg.contributes.configuration.properties['csvTsvViewer.selectionDelimiter'];
+    expect(setting.enum).toEqual(['auto', ...Object.keys(DELIMITERS)]);
   });
 
   it('resolves every %nls% placeholder in both languages', () => {

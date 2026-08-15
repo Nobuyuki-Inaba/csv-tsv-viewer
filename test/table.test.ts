@@ -10,6 +10,7 @@ import {
   sortIndices,
   toMarkdown,
   toTsv,
+  transpose,
 } from '../src/shared/table';
 
 const rows = [
@@ -240,5 +241,40 @@ describe('pageSlice', () => {
 
   it('returns nothing for an empty set', () => {
     expect(pageSlice([], 0, 10)).toEqual([]);
+  });
+});
+
+describe('transpose', () => {
+  it('swaps rows and columns', () => {
+    expect(
+      transpose([
+        ['a', 'b', 'c'],
+        ['1', '2', '3'],
+      ])
+    ).toEqual([
+      ['a', '1'],
+      ['b', '2'],
+      ['c', '3'],
+    ]);
+  });
+
+  it('is its own inverse for a rectangular table', () => {
+    const grid = [
+      ['a', 'b'],
+      ['1', '2'],
+      ['x', 'y'],
+    ];
+    expect(transpose(transpose(grid))).toEqual(grid);
+  });
+
+  it('pads ragged rows', () => {
+    expect(transpose([['a', 'b'], ['1']])).toEqual([
+      ['a', '1'],
+      ['b', ''],
+    ]);
+  });
+
+  it('handles an empty table', () => {
+    expect(transpose([])).toEqual([]);
   });
 });

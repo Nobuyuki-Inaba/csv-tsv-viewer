@@ -78,6 +78,17 @@ body {
   cursor: default;
 }
 
+/* A pressed toggle borrows the primary button colors so its state is obvious. */
+.toolbar button.toggle.active {
+  color: var(--vscode-button-foreground, var(--vscode-foreground));
+  background: var(--vscode-button-background, rgba(128, 128, 128, 0.35));
+  border-color: var(--vscode-button-background, rgba(128, 128, 128, 0.4));
+}
+
+.toolbar button.toggle.active:hover:not(:disabled) {
+  background: var(--vscode-button-hoverBackground, rgba(128, 128, 128, 0.45));
+}
+
 .toolbar button.link {
   border: none;
   background: none;

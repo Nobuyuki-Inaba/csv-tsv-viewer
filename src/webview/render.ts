@@ -15,12 +15,13 @@ import {
   sortIndices,
   toMarkdown,
   toTsv,
+  transpose,
   type SortDirection,
 } from '../shared/table';
 
 const ROW_HEIGHT = 22;
 const OVERSCAN = 12;
-const DELIMITER_NAMES: DelimiterName[] = ['comma', 'tab', 'semicolon', 'pipe'];
+const DELIMITER_NAMES: DelimiterName[] = ['comma', 'tab', 'semicolon', 'pipe', 'space'];
 
 export interface HostApi {
   postMessage(message: WebviewToHost): void;
@@ -38,10 +39,13 @@ interface Sort {
  */
 export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => void {
   let labels: WebviewLabels;
+  /** Rows exactly as the host parsed them; `allRows` is the transposed view of these. */
+  let sourceRows: string[][] = [];
   let allRows: string[][] = [];
   let body: string[][] = [];
   let header: string[] = [];
   let hasHeader = true;
+  let transposed = false;
   let truncated = false;
   let maxRows = 0;
   let pageSize = 200;
@@ -63,6 +67,8 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
   const headerText = document.createElement('span');
   const headerToggle = document.createElement('input');
   headerToggle.type = 'checkbox';
+  const transposeButton = document.createElement('button');
+  transposeButton.className = 'toggle';
   const filterInput = document.createElement('input');
   filterInput.type = 'search';
   filterInput.className = 'filter';
@@ -76,6 +82,7 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
   toolbar.append(
     delimiterLabel,
     headerLabel,
+    transposeButton,
     filterInput,
     excelButton,
     markdownButton,
@@ -123,6 +130,19 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
     reshape();
   });
 
+  // Rows and columns trade places, so neither the sort (an ordering of the old
+  // columns) nor the filter (a selection of the old rows) still means anything.
+  // Both reset, exactly as they do when fresh data arrives.
+  transposeButton.addEventListener('click', () => {
+    transposed = !transposed;
+    sort = null;
+    filter = '';
+    filterInput.value = '';
+    page = 0;
+    renderTransposeField();
+    reshape();
+  });
+
   filterInput.addEventListener('input', () => {
     filter = filterInput.value;
     recomputeView();
@@ -151,8 +171,9 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
 
   return function update(data: InitMessage): void {
     labels = data.labels;
-    allRows = data.rows;
+    sourceRows = data.rows;
     hasHeader = data.hasHeader;
+    transposed = false;
     truncated = data.truncated;
     maxRows = data.maxRows;
     pageSize = data.pageSize;
@@ -175,13 +196,16 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
 
     renderDelimiterField(data.delimiter);
     renderHeaderField();
+    renderTransposeField();
     reshape();
   };
 
   // ── Rendering ───────────────────────────────────────────────────────────────
 
-  /** Recompute everything that depends on the header toggle or new data. */
+  /** Recompute everything that depends on the header toggle, transpose or new data. */
   function reshape(): void {
+    allRows = transposed ? transpose(sourceRows) : sourceRows;
+
     const isEmpty = allRows.length === 0;
     viewport.hidden = isEmpty;
     empty.hidden = !isEmpty;
@@ -254,6 +278,13 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
   function renderHeaderField(): void {
     headerToggle.checked = hasHeader;
     headerText.textContent = labels.headerRow;
+  }
+
+  function renderTransposeField(): void {
+    transposeButton.textContent = labels.transpose;
+    transposeButton.title = labels.transposeTitle;
+    transposeButton.setAttribute('aria-pressed', String(transposed));
+    transposeButton.classList.toggle('active', transposed);
   }
 
   function renderColgroup(): void {

@@ -15,19 +15,33 @@ export const DELIMITERS: Record<DelimiterName, string> = {
   tab: '\t',
   semicolon: ';',
   pipe: '|',
+  space: ' ',
 };
 
 /**
  * RFC 4180 parser — handles quoted fields, embedded delimiters and newlines,
  * and `""` escapes. Works with any single-character delimiter.
+ *
+ * A space delimiter is special-cased: runs collapse to one separator and a
+ * leading run is treated as indentation. Column-aligned output (`ps`, `df`, a
+ * pasted fixed-width report) is the only reason to pick space at all, and
+ * taking every space literally would fill such a table with empty cells.
  */
 export function parseDelimited(content: string, delimiter: string): string[][] {
+  const collapseRuns = delimiter === ' ';
   const rows: string[][] = [];
   let i = 0;
   const n = content.length;
 
+  const atRowEnd = (): boolean => i >= n || content[i] === '\n' || content[i] === '\r';
+  const skipRun = (): void => {
+    while (i < n && content[i] === delimiter) i++;
+  };
+
   while (i < n) {
     const row: string[] = [];
+
+    if (collapseRuns) skipRun();
 
     while (i <= n) {
       let field = '';
@@ -55,8 +69,13 @@ export function parseDelimited(content: string, delimiter: string): string[][] {
 
       row.push(field);
 
-      if (i >= n || content[i] === '\n' || content[i] === '\r') break;
+      if (atRowEnd()) break;
       i++; // skip delimiter
+      if (collapseRuns) {
+        skipRun();
+        // A run before the line ending is trailing padding, not another field.
+        if (atRowEnd()) break;
+      }
     }
 
     // Skip line ending
@@ -75,12 +94,20 @@ export function parseDelimited(content: string, delimiter: string): string[][] {
 }
 
 /**
+ * Delimiters `auto` scores against each other. Space is excluded on purpose:
+ * ordinary prose is full of spaces, so scoring it alongside the punctuation
+ * delimiters would turn any sentence into a wide table.
+ */
+const SCORED: DelimiterName[] = ['comma', 'tab', 'semicolon', 'pipe'];
+
+/**
  * Guess the delimiter of a delimited-text sample.
  *
  * Scores each candidate by how consistently it splits the first `sampleLines`
  * lines into the same number of fields. Quoted sections are skipped so that
- * `"a,b",c` does not inflate the comma score. Ties resolve in DELIMITERS order,
- * which puts comma first.
+ * `"a,b",c` does not inflate the comma score. Ties resolve in SCORED order,
+ * which puts comma first. Space is only a last resort — see
+ * `looksSpaceSeparated`.
  */
 export function detectDelimiter(content: string, sampleLines = 20): DelimiterName {
   const lines = splitLinesOutsideQuotes(content, sampleLines).filter((l) => l.trim() !== '');
@@ -89,7 +116,7 @@ export function detectDelimiter(content: string, sampleLines = 20): DelimiterNam
   let best: DelimiterName = 'comma';
   let bestScore = -1;
 
-  for (const name of Object.keys(DELIMITERS) as DelimiterName[]) {
+  for (const name of SCORED) {
     const counts = lines.map((line) => countOutsideQuotes(line, DELIMITERS[name]));
     const first = counts[0];
 
@@ -107,7 +134,24 @@ export function detectDelimiter(content: string, sampleLines = 20): DelimiterNam
     }
   }
 
+  if (bestScore < 0 && looksSpaceSeparated(lines)) return 'space';
   return best;
+}
+
+/**
+ * Whether a sample no punctuation delimiter fits is worth reading as
+ * space-separated columns.
+ *
+ * Deliberately strict, because the alternative reading is "this is prose":
+ * several lines are required, and every one of them must break into the exact
+ * same number of fields. A paragraph almost never has an identical word count
+ * on every line; a column-aligned report always does.
+ */
+function looksSpaceSeparated(lines: string[]): boolean {
+  if (lines.length < 2) return false;
+
+  const counts = lines.map((line) => countOutsideQuotes(line.trim(), ' ', true));
+  return counts[0] > 0 && counts.every((c) => c === counts[0]);
 }
 
 /** Split into at most `limit` lines, ignoring newlines inside quoted fields. */
@@ -144,10 +188,14 @@ function splitLinesOutsideQuotes(content: string, limit: number): string[] {
   return lines;
 }
 
-/** Count occurrences of `delimiter` that fall outside quoted fields. */
-function countOutsideQuotes(line: string, delimiter: string): number {
+/**
+ * Count occurrences of `delimiter` that fall outside quoted fields. With
+ * `collapseRuns`, a run counts once — matching how the parser treats spaces.
+ */
+function countOutsideQuotes(line: string, delimiter: string, collapseRuns = false): number {
   let count = 0;
   let inQuotes = false;
+  let inRun = false;
 
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
@@ -158,10 +206,17 @@ function countOutsideQuotes(line: string, delimiter: string): number {
         continue;
       }
       inQuotes = !inQuotes;
+      inRun = false;
       continue;
     }
 
-    if (!inQuotes && ch === delimiter) count++;
+    if (!inQuotes && ch === delimiter) {
+      if (!collapseRuns || !inRun) count++;
+      inRun = true;
+      continue;
+    }
+
+    inRun = false;
   }
 
   return count;
