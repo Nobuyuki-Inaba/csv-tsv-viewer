@@ -77,6 +77,23 @@ scoped to `--production`, so devDependencies are deliberately out of scope.
 is fine here because it is a dev-only build tool: nothing it ships ends up in the `.vsix`, only the
 PNG it renders from our own SVG. Keep it in `devDependencies`.
 
+### Keep the .vsix minimal
+
+The package must never carry anything the user's disk does not need. It currently sits at
+**12 files / ~23 KB**: the two minified bundles, the icon, the manifest and nls files, and the
+three Marketplace-facing documents (readme, changelog, license). Everything else — sources, tests,
+fixtures, the icon SVG, the README screenshot, `scripts/`, `node_modules/` — is excluded by
+`.vscodeignore`.
+
+Rules that keep it that way:
+
+- Builds are minified with no sourcemaps (`minify: !dev`, `sourcemap: dev` in `build.mjs`). Never
+  ship a `--dev` build.
+- README images are referenced by their `raw.githubusercontent.com` URL rather than bundled.
+- After changing `.vscodeignore`, `build.mjs` or anything under `images/`, run `npm run package`
+  and read the file list it prints — vsce lists every file it includes. Anything unexpected in
+  that list is a bug.
+
 ### Icon
 
 `images/icon.svg` is the source; `images/icon.png` (128×128) is what the Marketplace consumes via
