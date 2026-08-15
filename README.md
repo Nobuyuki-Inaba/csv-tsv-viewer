@@ -1,8 +1,10 @@
 # CSV/TSV Viewer
 
-View CSV and TSV data as a table inside VS Code — from text you select in the editor, or from a
-file in the Explorer. Everything runs locally; the extension makes no network requests and ships
-with no runtime dependencies.
+English | [日本語](https://github.com/Nobuyuki-Inaba/csv-tsv-viewer/blob/main/README.ja.md)
+
+View CSV and TSV data as a table inside VS Code — from text you select in the editor, from the
+clipboard, or from a file in the Explorer. Everything runs locally; the extension makes no network
+requests and ships with no runtime dependencies.
 
 ![Viewing a TSV file as a table from the Explorer context menu](https://raw.githubusercontent.com/Nobuyuki-Inaba/csv-tsv-viewer/main/images/screenshot.png)
 
@@ -17,9 +19,19 @@ and can be pinned in settings.
 The menu item only appears when text is actually selected. While the preview is open it follows
 the selection — select a different block and the table repaints.
 
+### Preview the clipboard
+
+Run **CSV/TSV: Preview Clipboard as Table** from the Command Palette to show whatever delimited
+text you last copied — a query result, a chunk of a log, a range from a spreadsheet.
+
+This one is Command Palette only: the clipboard is not something you can right-click, so it gets
+no context menu entry. Because you cannot see what you are about to preview, text with no
+delimiter and no line break is rejected with a message rather than opening as a useless single
+cell.
+
 ### Table
 
-Both entry points share one view:
+All three entry points share one view:
 
 - Paged display — 200 rows per page by default (`csvTsvViewer.pageSize`), with first / previous /
   next / last controls and a `1–200 of 12,000` style row range in the footer.
@@ -50,7 +62,7 @@ via the right-click command or *Reopen Editor With…*.
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `csvTsvViewer.selectionDelimiter` | `auto` | Delimiter for selection previews: `auto`, `comma`, `tab`, `semicolon`, `pipe`. |
+| `csvTsvViewer.selectionDelimiter` | `auto` | Delimiter for selection and clipboard previews: `auto`, `comma`, `tab`, `semicolon`, `pipe`. |
 | `csvTsvViewer.hasHeader` | `true` | Treat the first row as a header row. |
 | `csvTsvViewer.pageSize` | `200` | Rows displayed per page. |
 | `csvTsvViewer.encoding` | `auto` | File encoding: `auto` (BOM, then UTF-8, then Shift_JIS), `utf8`, `shift_jis`. |

@@ -56,6 +56,15 @@ describe('the viewer never becomes a default editor', () => {
     }
   });
 
+  it('exposes the clipboard preview through the Command Palette only', () => {
+    const locations = Object.entries(pkg.contributes.menus)
+      .filter(([, items]) => items.some((i) => i.command === 'csvTsvViewer.previewClipboard'))
+      .map(([location]) => location);
+
+    // No context menu fits the clipboard, and adding one would be clutter.
+    expect(locations).toEqual(['commandPalette']);
+  });
+
   it('shows the selection preview only when text is selected', () => {
     const entries = Object.entries(pkg.contributes.menus).flatMap(([, items]) => items);
     const preview = entries.filter((e) => e.command === 'csvTsvViewer.previewSelection');

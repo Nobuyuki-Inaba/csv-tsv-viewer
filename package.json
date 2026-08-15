@@ -57,6 +57,11 @@
         "icon": "$(table)"
       },
       {
+        "command": "csvTsvViewer.previewClipboard",
+        "title": "%command.previewClipboard.title%",
+        "icon": "$(clippy)"
+      },
+      {
         "command": "csvTsvViewer.openFile",
         "title": "%command.openFile.title%",
         "icon": "$(table)"
@@ -88,6 +93,9 @@
         {
           "command": "csvTsvViewer.previewSelection",
           "when": "editorHasSelection"
+        },
+        {
+          "command": "csvTsvViewer.previewClipboard"
         },
         {
           "command": "csvTsvViewer.openFile",

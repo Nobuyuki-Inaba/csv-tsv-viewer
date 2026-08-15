@@ -31,13 +31,19 @@ There is no linter configured. TypeScript is `strict: true`.
 A **VS Code extension that views CSV/TSV data as a read-only table**. It never edits or saves —
 editing is the job of the separate `simple-excel-editor` extension.
 
-Two entry points, one renderer:
+Three entry points, one renderer:
 
 1. **Selection preview** — `csvTsvViewer.previewSelection`, contributed to `editor/context` behind
    `when: editorHasSelection`. Parses the selected text (delimiter auto-detected) into a webview
    panel opened beside the editor.
-2. **File view** — `csvTsvViewer.openFile`, contributed to `explorer/context` and `editor/title`
+2. **Clipboard preview** — `csvTsvViewer.previewClipboard`, Command Palette only; the clipboard has
+   no right-clickable surface. Guarded by `looksTabular()` because the user cannot see the input
+   beforehand.
+3. **File view** — `csvTsvViewer.openFile`, contributed to `explorer/context` and `editor/title`
    for `.csv` / `.tsv` / `.tab`. Delimiter comes from the file extension.
+
+Entry points 1 and 2 both go through `previewPanel.ts`: `showTextPreview` takes plain text, and
+`showSelectionPreview` wraps it with the follow-the-selection subscription.
 
 **This is a secondary viewer and must never become a default editor.** The custom editor is
 registered with `priority: "option"` so the plain text editor stays the default; the table opens
@@ -90,6 +96,8 @@ Rules that keep it that way:
 - Builds are minified with no sourcemaps (`minify: !dev`, `sourcemap: dev` in `build.mjs`). Never
   ship a `--dev` build.
 - README images are referenced by their `raw.githubusercontent.com` URL rather than bundled.
+- Only `README.md` ships. The Marketplace renders that one file, so `README.ja.md` is excluded and
+  linked from it instead. Keep the two in sync when either changes.
 - After changing `.vscodeignore`, `build.mjs` or anything under `images/`, run `npm run package`
   and read the file list it prints — vsce lists every file it includes. Anything unexpected in
   that list is a bug.

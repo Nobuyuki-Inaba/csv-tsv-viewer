@@ -17,6 +17,10 @@ scripts/**
 # (served from GitHub) do not need to travel in the package
 images/*.svg
 images/screenshot.png
+
+# Only README.md is rendered by the Marketplace; the translation is linked
+# from it and lives on GitHub
+README.ja.md
 **/*.ts
 **/tsconfig*.json
 build.mjs

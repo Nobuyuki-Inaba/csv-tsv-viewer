@@ -175,6 +175,18 @@ export function delimiterForFileName(fileName: string): DelimiterName {
   return /\.(tsv|tab)$/i.test(fileName) ? 'tab' : 'comma';
 }
 
+/**
+ * Whether parsed rows are worth showing as a table.
+ *
+ * A single cell means the input had no delimiters and no line breaks — a stray
+ * scrap of text rather than tabular data. A one-column *list* is still tabular,
+ * so only the 1x1 case is rejected.
+ */
+export function looksTabular(rows: string[][]): boolean {
+  if (rows.length === 0) return false;
+  return rows.length > 1 || (rows[0]?.length ?? 0) > 1;
+}
+
 /** Pad short rows so every row has the same width as the widest one. */
 export function normalizeWidth(rows: string[][]): string[][] {
   const width = rows.reduce((max, row) => Math.max(max, row.length), 0);

@@ -3,6 +3,7 @@ import {
   parseDelimited,
   detectDelimiter,
   delimiterForFileName,
+  looksTabular,
   normalizeWidth,
   generateColumnNames,
   DELIMITERS,
@@ -124,6 +125,28 @@ describe('delimiterForFileName', () => {
     ['no-extension', 'comma'],
   ])('%s -> %s', (name, expected) => {
     expect(delimiterForFileName(name)).toBe(expected);
+  });
+});
+
+describe('looksTabular', () => {
+  it('accepts a grid', () => {
+    expect(looksTabular(parseDelimited('a,b\n1,2', ','))).toBe(true);
+  });
+
+  it('accepts a single row with several columns', () => {
+    expect(looksTabular(parseDelimited('a,b,c', ','))).toBe(true);
+  });
+
+  it('accepts a single-column list', () => {
+    expect(looksTabular(parseDelimited('alpha\nbeta', ','))).toBe(true);
+  });
+
+  it('rejects one scrap of text', () => {
+    expect(looksTabular(parseDelimited('just some prose', ','))).toBe(false);
+  });
+
+  it('rejects empty input', () => {
+    expect(looksTabular([])).toBe(false);
   });
 });
 

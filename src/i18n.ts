@@ -14,6 +14,12 @@ export const msg = {
     isJa()
       ? 'テキストが選択されていません。CSV/TSV データを選択してください。'
       : 'No text selected. Select CSV or TSV data first.',
+  clipboardEmpty: () =>
+    isJa() ? 'クリップボードが空です。' : 'The clipboard is empty.',
+  clipboardNotTabular: () =>
+    isJa()
+      ? 'クリップボードの内容は表形式ではありません。区切り文字か改行を含むデータをコピーしてください。'
+      : 'The clipboard does not contain tabular data. Copy text with delimiters or line breaks.',
   parseEmpty: () =>
     isJa() ? '表として読み取れるデータがありませんでした。' : 'No tabular data could be read.',
   readFailed: (err: string) =>

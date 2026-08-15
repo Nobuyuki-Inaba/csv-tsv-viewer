@@ -1,7 +1,8 @@
 {
   "command.previewSelection.title": "CSV/TSV: Preview Selection as Table",
+  "command.previewClipboard.title": "CSV/TSV: Preview Clipboard as Table",
   "command.openFile.title": "CSV/TSV: View as Table",
-  "config.selectionDelimiter.description": "Delimiter used when previewing selected text. \"auto\" guesses from the selection.",
+  "config.selectionDelimiter.description": "Delimiter used when previewing selected text or the clipboard. \"auto\" guesses from the content.",
   "config.hasHeader.description": "Treat the first row as a header row.",
   "config.pageSize.description": "Number of rows to display per page.",
   "config.encoding.description": "Text encoding used when opening files. \"auto\" honours a BOM, then tries UTF-8 and falls back to Shift_JIS.",

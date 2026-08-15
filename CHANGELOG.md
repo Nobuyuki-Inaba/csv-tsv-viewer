@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   GitHub Actions CI and tag-triggered release.
 - RFC 4180 delimited-text parser with delimiter auto-detection (comma, tab, semicolon, pipe).
 - `CSV/TSV: Preview Selection as Table` — editor right-click menu, shown when text is selected.
+- `CSV/TSV: Preview Clipboard as Table` — Command Palette only; rejects clipboard text that has no
+  delimiter and no line break.
 - `CSV/TSV: View as Table` — Explorer right-click menu for `.csv` / `.tsv` / `.tab` files,
   plus an editor-title button.
 - Table webview shared by both entry points: paged display with first/previous/next/last controls,
@@ -22,5 +24,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Encoding detection: BOM, then strict UTF-8, falling back to Shift_JIS.
 - Settings: `selectionDelimiter`, `hasHeader`, `pageSize`, `encoding`, `followSelection`,
   `maxRows`, `language`.
-- English and Japanese UI strings.
+- English and Japanese UI strings, and a Japanese README (`README.ja.md`).
 - Marketplace icon, rendered from `images/icon.svg` by `npm run icon`.

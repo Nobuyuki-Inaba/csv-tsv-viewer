@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { CsvViewProvider } from './CsvViewProvider';
-import { DelimiterName, detectDelimiter } from './delimited';
+import { DELIMITERS, DelimiterName, detectDelimiter, looksTabular, parseDelimited } from './delimited';
 import { msg } from './i18n';
-import { selectedText, showSelectionPreview } from './previewPanel';
+import { selectedText, showSelectionPreview, showTextPreview } from './previewPanel';
 
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
@@ -10,6 +10,10 @@ export function activate(context: vscode.ExtensionContext): void {
 
     vscode.commands.registerCommand('csvTsvViewer.previewSelection', () =>
       previewSelection(context)
+    ),
+
+    vscode.commands.registerCommand('csvTsvViewer.previewClipboard', () =>
+      previewClipboard(context)
     ),
 
     vscode.commands.registerCommand('csvTsvViewer.openFile', openFile)
@@ -32,13 +36,32 @@ function previewSelection(context: vscode.ExtensionContext): void {
     return;
   }
 
-  const configured = vscode.workspace
-    .getConfiguration('csvTsvViewer')
-    .get<DelimiterName | 'auto'>('selectionDelimiter', 'auto');
+  showSelectionPreview(context.extensionUri, editor, resolveDelimiter(text));
+}
 
-  const delimiter = configured === 'auto' ? detectDelimiter(text) : configured;
+/**
+ * Preview whatever delimited text is on the clipboard.
+ *
+ * Command Palette only — the clipboard is not a resource you can right-click,
+ * so there is no menu surface for it.
+ */
+async function previewClipboard(context: vscode.ExtensionContext): Promise<void> {
+  const text = await vscode.env.clipboard.readText();
+  if (text.trim() === '') {
+    vscode.window.showErrorMessage(msg.clipboardEmpty());
+    return;
+  }
 
-  showSelectionPreview(context.extensionUri, editor, delimiter);
+  const delimiter = resolveDelimiter(text);
+
+  // Unlike the other entry points, the user cannot see what they are about to
+  // preview, so reject input that would render as a useless single cell.
+  if (!looksTabular(parseDelimited(text, DELIMITERS[delimiter]))) {
+    vscode.window.showErrorMessage(msg.clipboardNotTabular());
+    return;
+  }
+
+  showTextPreview(context.extensionUri, text, delimiter);
 }
 
 /**
@@ -56,4 +79,13 @@ async function openFile(uri?: vscode.Uri, uris?: vscode.Uri[]): Promise<void> {
 function activeUri(): vscode.Uri[] {
   const uri = vscode.window.activeTextEditor?.document.uri;
   return uri ? [uri] : [];
+}
+
+/** The configured delimiter, or one guessed from the text when set to `auto`. */
+function resolveDelimiter(text: string): DelimiterName {
+  const configured = vscode.workspace
+    .getConfiguration('csvTsvViewer')
+    .get<DelimiterName | 'auto'>('selectionDelimiter', 'auto');
+
+  return configured === 'auto' ? detectDelimiter(text) : configured;
 }
