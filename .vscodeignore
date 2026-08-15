@@ -11,6 +11,10 @@ PLAN.md
 src/**
 test/**
 samples/**
+scripts/**
+
+# Ship the rendered icon only, not its source
+images/*.svg
 **/*.ts
 **/tsconfig*.json
 build.mjs

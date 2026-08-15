@@ -5,6 +5,11 @@
   "version": "0.0.1",
   "publisher": "nobuyuki-inaba",
   "license": "MIT",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#0f766e",
+    "theme": "dark"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/Nobuyuki-Inaba/csv-tsv-viewer.git"
@@ -155,6 +160,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit && tsc -p tsconfig.webview.json && tsc -p tsconfig.test.json",
     "build": "node build.mjs",
+    "icon": "node scripts/make-icon.mjs",
     "dev": "node build.mjs --dev",
     "watch": "node build.mjs --watch --dev",
     "test": "vitest run",
@@ -163,6 +169,7 @@
     "vscode:prepublish": "npm run build"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^24.0.0",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.9.1",

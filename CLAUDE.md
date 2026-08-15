@@ -19,6 +19,9 @@ npm test
 
 # Build a .vsix
 npm run package
+
+# Re-render images/icon.png from images/icon.svg (commit both)
+npm run icon
 ```
 
 There is no linter configured. TypeScript is `strict: true`.
@@ -65,9 +68,20 @@ Marketplace under MIT, so anything bundled must be permissively licensed.
 - The grid is hand-rolled in `src/webview/`, not a third-party grid library.
 - Encoding uses the platform `TextDecoder` (which includes `shift_jis`).
 
-Before adding any dependency: MIT / ISC / BSD / Apache-2.0 only. No GPL/LGPL (viral over a bundled
-`.vsix`), and no source-available or non-commercial terms — this rules out Handsontable and
-SheetJS Pro. CI runs `license-checker-rseidelsohn` with an allowlist as a tripwire.
+Before adding any *runtime* dependency: MIT / ISC / BSD / Apache-2.0 only. No GPL/LGPL (viral over
+a bundled `.vsix`), and no source-available or non-commercial terms — this rules out Handsontable
+and SheetJS Pro. CI runs `license-checker-rseidelsohn` with an allowlist as a tripwire; it is
+scoped to `--production`, so devDependencies are deliberately out of scope.
+
+`@resvg/resvg-js` (the icon renderer) is **MPL-2.0**, which the runtime allowlist would reject. It
+is fine here because it is a dev-only build tool: nothing it ships ends up in the `.vsix`, only the
+PNG it renders from our own SVG. Keep it in `devDependencies`.
+
+### Icon
+
+`images/icon.svg` is the source; `images/icon.png` (128×128) is what the Marketplace consumes via
+the `icon` field. Edit the SVG, run `npm run icon`, and commit both. `.vscodeignore` ships the PNG
+and excludes the SVG and `scripts/`.
 
 ### Layout
 
@@ -86,6 +100,7 @@ SheetJS Pro. CI runs `license-checker-rseidelsohn` with an allowlist as a tripwi
 | `src/webview/render.ts` | The table renderer; owns all view state |
 | `test/` | vitest specs — node for pure modules, jsdom for `render.ts` |
 | `samples/` | Fixtures for manual testing; excluded from the `.vsix` |
+| `images/`, `scripts/make-icon.mjs` | Marketplace icon and its renderer |
 
 `src/delimited.ts`, `src/encoding.ts` and `src/shared/**` have no `vscode` import by design — keep
 it that way so they stay testable.

@@ -23,3 +23,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Settings: `selectionDelimiter`, `hasHeader`, `pageSize`, `encoding`, `followSelection`,
   `maxRows`, `language`.
 - English and Japanese UI strings.
+- Marketplace icon, rendered from `images/icon.svg` by `npm run icon`.

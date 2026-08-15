@@ -289,8 +289,9 @@ One bundle serves both entry points; the only difference is the message source.
    rather than one long scroll, and **copy-as-TSV was dropped**. Windowed rendering was kept
    *inside* each page so a large `pageSize` stays responsive. Column *resize* is not implemented;
    widths are auto-measured from content instead.
-5. **P5 (partial)** config, i18n and docs are done. Remaining before `v0.1.0`: extension icon,
-   README screenshots, and manual verification in the Extension Development Host.
+5. **P5 (partial)** config, i18n, docs and the Marketplace icon are done. Remaining before
+   `v0.1.0`: README screenshots, a version bump, and manual verification in the Extension
+   Development Host.
 
 ### Not built
 

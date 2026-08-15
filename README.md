@@ -64,6 +64,7 @@ npm run compile      # type check + bundle
 npm run watch        # rebuild on change (use with F5)
 npm test             # unit tests
 npm run package      # build a .vsix
+npm run icon         # re-render images/icon.png from images/icon.svg
 ```
 
 Press <kbd>F5</kbd> to launch an Extension Development Host.
