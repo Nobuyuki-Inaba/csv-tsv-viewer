@@ -28,8 +28,10 @@ jobs:
       - name: Build and package extension
         run: npm run package
 
+      # Attaches the .vsix to the GitHub Release. Publishing to the Marketplace
+      # is done by hand, so no VSCE_PAT is needed here.
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: '*.vsix'
           generate_release_notes: true

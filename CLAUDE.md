@@ -171,7 +171,13 @@ Two layers, both needed:
 - `.github/workflows/release.yml` — on a `v*` tag: packages and creates a GitHub Release with the
   `.vsix` attached.
 
-Both run Node 24 on ubuntu-latest.
+Both run Node 24 on ubuntu-latest. Keep the actions on majors that declare `runs.using: node24`
+(`checkout@v5`, `setup-node@v5`, `upload-artifact@v7`, `action-gh-release@v3`); older majors still
+work but make every run emit a Node 20 deprecation annotation.
+
+**Publishing is manual.** `npm run package` writes `csv-tsv-viewer-<version>.vsix` to the project
+root and that file is uploaded to the Marketplace by hand. Do not add a `vsce publish` step or a
+`VSCE_PAT` secret unless asked — CI holds no publish credentials by design.
 
 ## Plan
 

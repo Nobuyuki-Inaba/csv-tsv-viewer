@@ -65,9 +65,13 @@ npm install
 npm run compile      # type check + bundle
 npm run watch        # rebuild on change (use with F5)
 npm test             # unit tests
-npm run package      # build a .vsix
+npm run package      # build a .vsix in the project root
 npm run icon         # re-render images/icon.png from images/icon.svg
 ```
+
+`npm run package` type-checks, builds and writes `csv-tsv-viewer-<version>.vsix` to the project
+root. That file is what gets uploaded to the Marketplace — publishing is done manually, so no
+publish token is stored in CI.
 
 Press <kbd>F5</kbd> to launch an Extension Development Host.
 

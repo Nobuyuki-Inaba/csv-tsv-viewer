@@ -147,7 +147,8 @@ permissions: { contents: write }
   npm ci → npm run package
   softprops/action-gh-release@v2 with files '*.vsix', generate_release_notes: true
 ```
-Optional follow-up: `npx vsce publish -p ${{ secrets.VSCE_PAT }}` step, gated on a repo secret.
+**Decided against:** a `vsce publish` step. Marketplace uploads are done by hand from the `.vsix`
+that `npm run package` produces, so no publish token lives in CI.
 
 ### 1.7 Supporting config
 
