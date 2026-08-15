@@ -1,0 +1,11 @@
+{
+  "command.previewSelection.title": "CSV/TSV: Preview Selection as Table",
+  "command.openFile.title": "CSV/TSV: View as Table",
+  "config.selectionDelimiter.description": "Delimiter used when previewing selected text. \"auto\" guesses from the selection.",
+  "config.hasHeader.description": "Treat the first row as a header row.",
+  "config.pageSize.description": "Number of rows to display per page.",
+  "config.encoding.description": "Text encoding used when opening files. \"auto\" honours a BOM, then tries UTF-8 and falls back to Shift_JIS.",
+  "config.followSelection.description": "Update the preview automatically when the editor selection changes.",
+  "config.maxRows.description": "Maximum number of rows to display. Larger files are truncated.",
+  "config.language.description": "UI language. \"auto\" follows the VS Code display language. Set to \"en\" or \"ja\" to override."
+}

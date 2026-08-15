@@ -1,0 +1,232 @@
+/* Styles follow the active VS Code color theme via its CSS variables. */
+
+:root {
+  --row-height: 22px;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size, 13px);
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+}
+
+.toolbar .field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.toolbar .spacer {
+  flex: 1;
+}
+
+.toolbar select,
+.toolbar input,
+.toolbar button {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--vscode-input-foreground, inherit);
+  background: var(--vscode-input-background, transparent);
+  border: 1px solid var(--vscode-input-border, rgba(128, 128, 128, 0.4));
+  border-radius: 2px;
+  padding: 2px 6px;
+}
+
+.toolbar input[type='checkbox'] {
+  padding: 0;
+  accent-color: var(--vscode-checkbox-selectBackground, currentColor);
+}
+
+.toolbar button {
+  cursor: pointer;
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  background: var(--vscode-button-secondaryBackground, transparent);
+}
+
+.toolbar button:hover:not(:disabled) {
+  background: var(--vscode-button-secondaryHoverBackground, rgba(128, 128, 128, 0.2));
+}
+
+.toolbar button:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.toolbar button.link {
+  border: none;
+  background: none;
+  padding: 2px 0;
+  color: var(--vscode-textLink-foreground);
+  text-decoration: underline;
+}
+
+.toolbar .filter {
+  min-width: 120px;
+}
+
+/* ── Footer / pager ──────────────────────────────────────────────────────── */
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  padding: 4px 10px;
+  border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+}
+
+.footer .spacer {
+  flex: 1;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.pager-button {
+  min-width: 24px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1.4;
+  padding: 1px 6px;
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  background: var(--vscode-button-secondaryBackground, transparent);
+  border: 1px solid var(--vscode-input-border, rgba(128, 128, 128, 0.4));
+  border-radius: 2px;
+}
+
+.pager-button:hover:not(:disabled) {
+  background: var(--vscode-button-secondaryHoverBackground, rgba(128, 128, 128, 0.2));
+}
+
+.pager-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pager .page {
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.footer .range,
+.footer .status {
+  color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+}
+
+.footer .status.warn {
+  color: var(--vscode-editorWarning-foreground, var(--vscode-descriptionForeground));
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+
+.viewport {
+  flex: 1;
+  overflow: auto;
+}
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: var(--vscode-editor-font-size, 13px);
+}
+
+th,
+td {
+  height: var(--row-height);
+  box-sizing: border-box;
+  padding: 0 8px;
+  border-right: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.25));
+  border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.25));
+  overflow: hidden;
+  white-space: pre;
+  text-overflow: ellipsis;
+  text-align: left;
+  font-weight: normal;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  cursor: pointer;
+  font-weight: 600;
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+}
+
+thead th:hover {
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.15));
+}
+
+thead th .arrow {
+  margin-left: 4px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.gutter {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  text-align: right;
+  color: var(--vscode-editorLineNumber-foreground);
+  background: var(--vscode-editorGutter-background, var(--vscode-editor-background));
+  cursor: default;
+}
+
+thead .corner {
+  z-index: 3;
+}
+
+tbody tr:nth-child(even) td:not(.gutter) {
+  background: var(--vscode-list-inactiveSelectionBackground, rgba(128, 128, 128, 0.06));
+}
+
+tbody tr:hover td {
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.15));
+}
+
+.spacer-row td {
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+
+.empty {
+  padding: 16px;
+  color: var(--vscode-descriptionForeground);
+}

@@ -1,0 +1,26 @@
+# Development tools and config
+.vscode/**
+.github/**
+.claude/**
+.gitignore
+.gitattributes
+CLAUDE.md
+PLAN.md
+
+# TypeScript source, tests and fixtures
+src/**
+test/**
+samples/**
+**/*.ts
+**/tsconfig*.json
+build.mjs
+vitest.config.ts
+
+# Build artifacts — ship only the bundles
+**/*.map
+
+# Node modules (bundled into dist/ by esbuild)
+node_modules/**
+
+# Package management
+package-lock.json

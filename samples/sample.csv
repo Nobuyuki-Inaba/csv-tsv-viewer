@@ -1,0 +1,7 @@
+id,name,department,note,joined
+1,Alice,Engineering,"Works on the ""core"" team",2021-04-01
+2,Bob,Sales,"Tokyo, Japan",2022-11-15
+3,Carol,Engineering,"Multi-line
+note field",2019-06-30
+4,Dave,Support,,2023-01-09
+5,Eve,Engineering,Handles releases,2020-08-22

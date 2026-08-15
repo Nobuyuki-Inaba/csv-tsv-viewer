@@ -1,0 +1,174 @@
+{
+  "name": "csv-tsv-viewer",
+  "displayName": "CSV/TSV Viewer",
+  "description": "View CSV and TSV data as a table — from selected text in the editor, or from a file in the Explorer. Fully local, no dependencies.",
+  "version": "0.0.1",
+  "publisher": "nobuyuki-inaba",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nobuyuki-Inaba/csv-tsv-viewer.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Data Science",
+    "Other"
+  ],
+  "keywords": [
+    "csv",
+    "tsv",
+    "table",
+    "viewer",
+    "preview"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "csvTsvViewer.tableView",
+        "displayName": "CSV/TSV Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.csv"
+          },
+          {
+            "filenamePattern": "*.tsv"
+          },
+          {
+            "filenamePattern": "*.tab"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "commands": [
+      {
+        "command": "csvTsvViewer.previewSelection",
+        "title": "%command.previewSelection.title%",
+        "icon": "$(table)"
+      },
+      {
+        "command": "csvTsvViewer.openFile",
+        "title": "%command.openFile.title%",
+        "icon": "$(table)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "csvTsvViewer.previewSelection",
+          "when": "editorHasSelection",
+          "group": "navigation@1"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "csvTsvViewer.openFile",
+          "when": "resourceExtname =~ /\\.(csv|tsv|tab)$/i",
+          "group": "navigation@10"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "csvTsvViewer.openFile",
+          "when": "resourceExtname =~ /\\.(csv|tsv|tab)$/i && activeCustomEditorId != csvTsvViewer.tableView",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "csvTsvViewer.previewSelection",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "csvTsvViewer.openFile",
+          "when": "resourceExtname =~ /\\.(csv|tsv|tab)$/i"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CSV/TSV Viewer",
+      "properties": {
+        "csvTsvViewer.selectionDelimiter": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "comma",
+            "tab",
+            "semicolon",
+            "pipe"
+          ],
+          "default": "auto",
+          "description": "%config.selectionDelimiter.description%"
+        },
+        "csvTsvViewer.hasHeader": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.hasHeader.description%"
+        },
+        "csvTsvViewer.pageSize": {
+          "type": "number",
+          "default": 200,
+          "minimum": 50,
+          "maximum": 10000,
+          "description": "%config.pageSize.description%"
+        },
+        "csvTsvViewer.encoding": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "utf8",
+            "shift_jis"
+          ],
+          "default": "auto",
+          "description": "%config.encoding.description%"
+        },
+        "csvTsvViewer.followSelection": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.followSelection.description%"
+        },
+        "csvTsvViewer.maxRows": {
+          "type": "number",
+          "default": 100000,
+          "minimum": 100,
+          "maximum": 1000000,
+          "description": "%config.maxRows.description%"
+        },
+        "csvTsvViewer.language": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "en",
+            "ja"
+          ],
+          "default": "auto",
+          "description": "%config.language.description%"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.webview.json && tsc -p tsconfig.test.json",
+    "build": "node build.mjs",
+    "dev": "node build.mjs --dev",
+    "watch": "node build.mjs --watch --dev",
+    "test": "vitest run",
+    "compile": "npm run typecheck && npm run build",
+    "package": "npm run compile && vsce package",
+    "vscode:prepublish": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.9.1",
+    "esbuild": "^0.25.0",
+    "jsdom": "^29.1.1",
+    "typescript": "^7.0.2",
+    "vitest": "^3.0.0"
+  }
+}
