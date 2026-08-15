@@ -4,6 +4,8 @@ View CSV and TSV data as a table inside VS Code — from text you select in the 
 file in the Explorer. Everything runs locally; the extension makes no network requests and ships
 with no runtime dependencies.
 
+![Viewing a TSV file as a table from the Explorer context menu](https://raw.githubusercontent.com/Nobuyuki-Inaba/csv-tsv-viewer/main/images/screenshot.png)
+
 ## Features
 
 ### Preview selected text

@@ -13,8 +13,10 @@ test/**
 samples/**
 scripts/**
 
-# Ship the rendered icon only, not its source
+# Ship the rendered icon only — the SVG source and the README screenshot
+# (served from GitHub) do not need to travel in the package
 images/*.svg
+images/screenshot.png
 **/*.ts
 **/tsconfig*.json
 build.mjs
