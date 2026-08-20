@@ -4,7 +4,7 @@
  * Imported by both sides, so it must stay free of `vscode` and node imports.
  */
 
-export type DelimiterName = 'comma' | 'tab' | 'semicolon' | 'pipe' | 'space';
+export type DelimiterName = 'comma' | 'tab' | 'semicolon' | 'pipe' | 'space' | 'whitespace';
 
 /**
  * UI strings resolved on the host and handed to the webview (see src/i18n.ts).
@@ -17,9 +17,13 @@ export interface WebviewLabels {
   semicolon: string;
   pipe: string;
   space: string;
+  whitespace: string;
   headerRow: string;
   transpose: string;
   transposeTitle: string;
+  wrap: string;
+  wrapTitle: string;
+  resizeColumn: string;
   filterPlaceholder: string;
   copyExcel: string;
   copyExcelTitle: string;

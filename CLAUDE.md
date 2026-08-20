@@ -70,11 +70,15 @@ under TS7.
 Marketplace under MIT, so anything bundled must be permissively licensed.
 
 - The delimited-text parser (`src/delimited.ts`) is a port of `simple-excel-editor/src/CsvUtils.ts`,
-  generalized from a hardcoded comma to a delimiter parameter. One delimiter is not literal: a
+  generalized from a hardcoded comma to a delimiter parameter. Two delimiters are not literal: a
   space collapses runs and skips leading indentation, since column-aligned text is the only reason
-  to choose it. For the same reason space is excluded from `detectDelimiter`'s scoring loop and
-  reachable only through the strict `looksSpaceSeparated` fallback — scoring it against the
-  punctuation delimiters would turn every prose selection into a wide table.
+  to choose it, and `whitespace` splits on a tab or a run of 2+ spaces (a lone space stays in the
+  cell) for TSV whose tabs were expanded on the way through a rendered document. `whitespace` is
+  not a character at all — `DELIMITERS` carries the `WHITESPACE` sentinel so call sites can keep
+  passing `DELIMITERS[name]` to `parseDelimited`. For the same reason both are excluded from
+  `detectDelimiter`'s scoring loop and reachable only through the strict `looksWhitespaceSeparated`
+  / `looksSpaceSeparated` fallbacks, tried in that order — scoring them against the punctuation
+  delimiters would turn every prose selection into a wide table.
 - The grid is hand-rolled in `src/webview/`, not a third-party grid library.
 - Encoding uses the platform `TextDecoder` (which includes `shift_jis`).
 
@@ -90,7 +94,7 @@ PNG it renders from our own SVG. Keep it in `devDependencies`.
 ### Keep the .vsix minimal
 
 The package must never carry anything the user's disk does not need. It currently sits at
-**12 files / ~23 KB**: the two minified bundles, the icon, the manifest and nls files, and the
+**12 files / ~27 KB**: the two minified bundles, the icon, the manifest and nls files, and the
 three Marketplace-facing documents (readme, changelog, license). Everything else — sources, tests,
 fixtures, the icon SVG, the README screenshot, `scripts/`, `node_modules/` — is excluded by
 `.vscodeignore`.
@@ -137,7 +141,7 @@ it that way so they stay testable.
 ### Host ↔ webview split
 
 The host owns file I/O and parsing; the webview owns all view state (sort, filter, header toggle,
-transpose, scroll window). The host re-parses only when the delimiter changes or the file is
+transpose, wrap, dragged column widths, scroll window). The host re-parses only when the delimiter changes or the file is
 reloaded, and both cases go through `bindTableWebview`, which is shared by the panel and the custom
 editor. Transpose is deliberately *not* a host round-trip: `render.ts` keeps the parsed rows in
 `sourceRows` and derives `allRows` from them, so the swap costs no re-parse.
@@ -151,6 +155,13 @@ row set across all pages, not the visible page.
 Paging, sorting and filtering all happen in the webview over the full row set — the host never
 sends a page. `view` holds source row indices after filtering and sorting; `pageSlice` cuts the
 current page out of it; the renderer then windows *that* so a large `pageSize` stays responsive.
+The window is measured in whole rows, so **every row must be the same height** — that is why the
+wrap mode fixes cells at `WRAP_LINES` lines and clips the rest instead of growing a row to fit its
+content, and why `render.ts` writes `--wrap-row-height` into the stylesheet rather than letting the
+two sides carry their own copy of the number. Column resizing reuses the same widths: the grips are
+one absolutely positioned strip per column laid over the table at the cumulative offsets, which
+keeps them full-height (drag from any row) and costs one element per column rather than one per
+cell.
 Because indices are carried through, the gutter always shows the original file row number — except
 while transposed, where a "row" is an original column and the number is its position instead.
 

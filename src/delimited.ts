@@ -10,31 +10,63 @@ import type { DelimiterName } from './shared/protocol';
 
 export type { DelimiterName };
 
+/**
+ * Not a character: the `whitespace` mode splits on a run of spaces and tabs that
+ * either contains a tab or is at least two wide. A lone space stays inside the
+ * cell, so `New York  36` is two fields rather than three.
+ *
+ * It exists because tabs do not survive a round trip through most rendered text
+ * — a TSV copied out of a chat reply or a rendered document arrives with its
+ * tabs expanded to spaces, and tab-stop alignment makes the width vary from one
+ * column to the next. Two is the practical floor: a single space cannot be told
+ * apart from a word break.
+ *
+ * `DELIMITERS` carries it as a sentinel so callers can keep looking a delimiter
+ * up by name and handing the result straight to `parseDelimited`.
+ */
+export const WHITESPACE = '\t ';
+
 export const DELIMITERS: Record<DelimiterName, string> = {
   comma: ',',
   tab: '\t',
   semicolon: ';',
   pipe: '|',
   space: ' ',
+  whitespace: WHITESPACE,
 };
 
 /**
  * RFC 4180 parser — handles quoted fields, embedded delimiters and newlines,
- * and `""` escapes. Works with any single-character delimiter.
+ * and `""` escapes. Works with any single-character delimiter, plus the
+ * `WHITESPACE` mode.
  *
  * A space delimiter is special-cased: runs collapse to one separator and a
  * leading run is treated as indentation. Column-aligned output (`ps`, `df`, a
  * pasted fixed-width report) is the only reason to pick space at all, and
- * taking every space literally would fill such a table with empty cells.
+ * taking every space literally would fill such a table with empty cells. The
+ * `WHITESPACE` mode collapses runs the same way; it differs only in which runs
+ * separate at all.
  */
 export function parseDelimited(content: string, delimiter: string): string[][] {
-  const collapseRuns = delimiter === ' ';
+  const whitespaceMode = delimiter === WHITESPACE;
+  const collapseRuns = whitespaceMode || delimiter === ' ';
   const rows: string[][] = [];
   let i = 0;
   const n = content.length;
 
   const atRowEnd = (): boolean => i >= n || content[i] === '\n' || content[i] === '\r';
+
+  /** Width of the separator at `i`, or 0 when there is none. */
+  const separatorAt = (): number => {
+    if (!whitespaceMode) return content[i] === delimiter ? 1 : 0;
+    return whitespaceRunLength(content, i);
+  };
+
   const skipRun = (): void => {
+    if (whitespaceMode) {
+      while (i < n && (content[i] === ' ' || content[i] === '\t')) i++;
+      return;
+    }
     while (i < n && content[i] === delimiter) i++;
   };
 
@@ -61,6 +93,13 @@ export function parseDelimited(content: string, delimiter: string): string[][] {
             field += content[i++];
           }
         }
+      } else if (whitespaceMode) {
+        while (i < n && content[i] !== '\n' && content[i] !== '\r' && separatorAt() === 0) {
+          field += content[i++];
+        }
+        // Only a run too narrow to separate can end up here, and only at the
+        // end of a line — anywhere else it would have stopped the scan.
+        field = field.replace(/[ \t]+$/, '');
       } else {
         while (i < n && content[i] !== delimiter && content[i] !== '\n' && content[i] !== '\r') {
           field += content[i++];
@@ -70,7 +109,7 @@ export function parseDelimited(content: string, delimiter: string): string[][] {
       row.push(field);
 
       if (atRowEnd()) break;
-      i++; // skip delimiter
+      i += separatorAt() || 1; // skip delimiter
       if (collapseRuns) {
         skipRun();
         // A run before the line ending is trailing padding, not another field.
@@ -134,8 +173,28 @@ export function detectDelimiter(content: string, sampleLines = 20): DelimiterNam
     }
   }
 
-  if (bestScore < 0 && looksSpaceSeparated(lines)) return 'space';
+  if (bestScore < 0) {
+    // Whitespace first: it reads `a b  c` as two fields where space reads three,
+    // and a table whose cells hold no spaces parses the same either way.
+    if (looksWhitespaceSeparated(lines)) return 'whitespace';
+    if (looksSpaceSeparated(lines)) return 'space';
+  }
   return best;
+}
+
+/**
+ * Whether a sample looks like columns held apart by tabs or by gaps of two or
+ * more spaces — the shape a TSV takes once its tabs have been expanded.
+ *
+ * As strict as `looksSpaceSeparated`, and for the same reason: several lines,
+ * each breaking into the same number of fields. Prose supplies the odd double
+ * space after a full stop, never the same count on every line.
+ */
+function looksWhitespaceSeparated(lines: string[]): boolean {
+  if (lines.length < 2) return false;
+
+  const counts = lines.map((line) => countWhitespaceRuns(line.trim()));
+  return counts[0] > 0 && counts.every((c) => c === counts[0]);
 }
 
 /**
@@ -217,6 +276,58 @@ function countOutsideQuotes(line: string, delimiter: string, collapseRuns = fals
     }
 
     inRun = false;
+  }
+
+  return count;
+}
+
+/**
+ * Width of the run of spaces and tabs at `at`, or 0 when the run does not
+ * separate. A run qualifies if it holds a tab or is at least two wide; a lone
+ * space is an ordinary character.
+ */
+function whitespaceRunLength(text: string, at: number): number {
+  let end = at;
+  let hasTab = false;
+
+  while (end < text.length && (text[end] === ' ' || text[end] === '\t')) {
+    if (text[end] === '\t') hasTab = true;
+    end++;
+  }
+
+  const width = end - at;
+  return hasTab || width >= 2 ? width : 0;
+}
+
+/** Count whitespace separators outside quoted fields — one per run. */
+function countWhitespaceRuns(line: string): number {
+  let count = 0;
+  let inQuotes = false;
+  let i = 0;
+
+  while (i < line.length) {
+    const ch = line[i];
+
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        i += 2;
+        continue;
+      }
+      inQuotes = !inQuotes;
+      i++;
+      continue;
+    }
+
+    if (!inQuotes) {
+      const width = whitespaceRunLength(line, i);
+      if (width > 0) {
+        count++;
+        i += width;
+        continue;
+      }
+    }
+
+    i++;
   }
 
   return count;

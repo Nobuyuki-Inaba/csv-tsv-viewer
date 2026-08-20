@@ -22,6 +22,13 @@ indentation is ignored, so column-aligned output (`ps`, `df`, a pasted fixed-wid
 as a table. Auto-detection only falls back to space when no other delimiter fits and every sampled
 line breaks into the same number of fields, so ordinary prose is not mistaken for a table.
 
+**Tab / 2+ spaces** handles TSV whose tabs did not survive the trip — text copied out of a chat
+reply or a rendered document usually arrives with each tab expanded to spaces, and tab-stop
+alignment makes the width vary from column to column. This mode separates on a tab *or* a gap of
+two or more spaces, so a single space stays inside the cell and `New York  8` reads as two fields
+rather than three. Auto-detection prefers it over `space` and applies the same guard: several
+lines, all breaking into the same number of fields.
+
 The menu item only appears when text is actually selected. While the preview is open it follows
 the selection — select a different block and the table repaints.
 
@@ -49,6 +56,16 @@ All three entry points share one view:
 - Filter box, matching case-insensitively across every column.
 - **Transpose** — swap rows and columns, for reading one wide record down the screen. Click again
   to swap back. The sort and filter reset, because both referred to the previous orientation.
+- Drag a column boundary to set its width by hand. The grip runs the full height of the table, so
+  it works from any row and not just the header; double-click a boundary to give that column back
+  to its automatic width. Widths survive sorting, filtering and paging, and reset when the data is
+  replaced or transposed. A width set by hand also outranks **Wrap**'s uniform columns — only the
+  column you drag changes.
+- **Wrap** — for data with one very long cell in it, where the alternative is scrolling sideways
+  to read anything. Columns narrow to a single shared width and wrap over three lines, and every
+  cell keeps the same width and height so the grid stays scannable. Anything past the third line
+  is clipped, with the full value on hover. Off by default; the setting sticks across reloads and
+  delimiter changes.
 - **Copy for Excel** — tab-separated text that pastes straight into Excel or Google Sheets cells.
 - **Copy as Markdown** — a GitHub-flavored Markdown table, with pipes escaped and cell newlines
   turned into `<br>`.
@@ -70,7 +87,7 @@ via the right-click command or *Reopen Editor With…*.
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `csvTsvViewer.selectionDelimiter` | `auto` | Delimiter for selection and clipboard previews: `auto`, `comma`, `tab`, `semicolon`, `pipe`, `space`. |
+| `csvTsvViewer.selectionDelimiter` | `auto` | Delimiter for selection and clipboard previews: `auto`, `comma`, `tab`, `semicolon`, `pipe`, `space`, `whitespace`. |
 | `csvTsvViewer.hasHeader` | `true` | Treat the first row as a header row. |
 | `csvTsvViewer.pageSize` | `200` | Rows displayed per page. |
 | `csvTsvViewer.encoding` | `auto` | File encoding: `auto` (BOM, then UTF-8, then Shift_JIS), `utf8`, `shift_jis`. |

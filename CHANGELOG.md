@@ -3,6 +3,21 @@
 All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.0.3] - 2026-08-21
+
+### Added
+
+- `whitespace` delimiter — splits on a tab or a run of two or more spaces, so single spaces stay
+  inside the cell. It reads TSV whose tabs were expanded to spaces on the way through a rendered
+  document or a chat reply, where tab-stop alignment leaves a different number of spaces in every
+  column. Auto-detection tries it before `space`, under the same all-lines-agree guard.
+- Per-column resize — drag a column boundary from any row, not only from the header, and
+  double-click it to restore the automatic width. The widths survive sorting, filtering and paging,
+  and take precedence over the uniform columns of the wrap mode.
+- **Wrap** button in the table toolbar — narrows every column to one shared width and wraps over
+  three lines, keeping all cells the same size so the virtualized rows stay a fixed height. The
+  full value of a clipped cell is available on hover. Survives reloads and delimiter changes.
+
 ## [0.0.2] - 2026-08-15
 
 ### Added

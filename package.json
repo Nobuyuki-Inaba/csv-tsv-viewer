@@ -2,7 +2,7 @@
   "name": "csv-tsv-viewer",
   "displayName": "CSV/TSV Viewer",
   "description": "View CSV and TSV data as a table — from selected text in the editor, or from a file in the Explorer. Fully local, no dependencies.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "nobuyuki-inaba",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -114,7 +114,8 @@
             "tab",
             "semicolon",
             "pipe",
-            "space"
+            "space",
+            "whitespace"
           ],
           "default": "auto",
           "description": "%config.selectionDelimiter.description%"

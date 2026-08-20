@@ -1,0 +1,5 @@
+city    people    note
+New York    8,336    Tabs expanded to spaces
+Salt Lake City    200    Cells hold single spaces
+札幌    195    姓 名 の間は空白1つ
+Long    1    Paste this and turn Wrap on: this cell keeps going well past any sensible column width so the table needs a horizontal scrollbar to read it.

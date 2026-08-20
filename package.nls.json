@@ -2,7 +2,7 @@
   "command.previewSelection.title": "CSV/TSV: Preview Selection as Table",
   "command.previewClipboard.title": "CSV/TSV: Preview Clipboard as Table",
   "command.openFile.title": "CSV/TSV: View as Table",
-  "config.selectionDelimiter.description": "Delimiter used when previewing selected text or the clipboard. \"auto\" guesses from the content, falling back to \"space\" only when no other delimiter fits. \"space\" treats a run of spaces as one separator, for column-aligned output.",
+  "config.selectionDelimiter.description": "Delimiter used when previewing selected text or the clipboard. \"auto\" guesses from the content, falling back to \"whitespace\" and then \"space\" only when no other delimiter fits. \"whitespace\" splits on a tab or a run of two or more spaces, so single spaces stay inside a cell — use it for TSV whose tabs were expanded to spaces. \"space\" treats any run of spaces as one separator, for column-aligned output.",
   "config.hasHeader.description": "Treat the first row as a header row.",
   "config.pageSize.description": "Number of rows to display per page.",
   "config.encoding.description": "Text encoding used when opening files. \"auto\" honours a BOM, then tries UTF-8 and falls back to Shift_JIS.",

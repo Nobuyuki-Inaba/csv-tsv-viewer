@@ -10,9 +10,13 @@ const labels: WebviewLabels = {
   semicolon: 'Semicolon',
   pipe: 'Pipe',
   space: 'Space',
+  whitespace: 'Tab / 2+ spaces',
   headerRow: 'Header row',
   transpose: 'Transpose',
   transposeTitle: 'Swap rows and columns.',
+  wrap: 'Wrap',
+  wrapTitle: 'Wrap long cells at a fixed width.',
+  resizeColumn: 'Drag to resize',
   filterPlaceholder: 'Filter…',
   copyExcel: 'Copy for Excel',
   copyExcelTitle: 'Copy for Excel',
@@ -86,6 +90,11 @@ const toolbarButton = (label: string) =>
 const excelButton = () => toolbarButton('Copy for Excel');
 const markdownButton = () => toolbarButton('Copy as Markdown');
 const transposeButton = () => toolbarButton('Transpose');
+const wrapButton = () => toolbarButton('Wrap');
+const columnWidths = () =>
+  [...root.querySelectorAll('colgroup col')].slice(1).map((c) => (c as HTMLElement).style.width);
+const trailingSpacer = () =>
+  parseInt(([...root.querySelectorAll('.spacer-row td')].pop() as HTMLElement).style.height, 10);
 
 describe('mount', () => {
   it('builds the toolbar before any data arrives', () => {
@@ -123,6 +132,7 @@ describe('mount', () => {
       'semicolon',
       'pipe',
       'space',
+      'whitespace',
     ]);
     expect(select.value).toBe('tab');
   });
@@ -164,6 +174,163 @@ describe('header toggle', () => {
 
     expect(headerCells()).toEqual(['A', 'B']);
     expect(dataRows()[0]).toEqual(['name', 'qty']);
+  });
+});
+
+describe('column resize', () => {
+  const handles = () => [...root.querySelectorAll('.resize-handles .resizer')] as HTMLElement[];
+  const px = (value: string) => parseInt(value, 10);
+
+  /** Grab a handle at x=0 and let go at x=`to`. */
+  const drag = (handle: HTMLElement, to: number) => {
+    handle.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, bubbles: true }));
+    window.dispatchEvent(new MouseEvent('mousemove', { clientX: to }));
+    window.dispatchEvent(new MouseEvent('mouseup', { clientX: to }));
+  };
+
+  it('widens the dragged column and leaves the others alone', () => {
+    update(init(sample));
+    const before = columnWidths();
+
+    drag(handles()[0], 400);
+
+    const after = columnWidths();
+    expect(px(after[0])).toBeGreaterThan(px(before[0]));
+    expect(after[1]).toBe(before[1]);
+  });
+
+  it('stops shrinking at a grabbable minimum', () => {
+    update(init(sample));
+
+    drag(handles()[0], -9999);
+    expect(px(columnWidths()[0])).toBe(32);
+  });
+
+  it('restores the measured width on a double-click', () => {
+    update(init(sample));
+    const before = columnWidths();
+
+    drag(handles()[0], 400);
+    handles()[0].dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+
+    expect(columnWidths()).toEqual(before);
+  });
+
+  it('keeps the width through a sort', () => {
+    update(init(sample));
+
+    drag(handles()[0], 400);
+    const widened = columnWidths();
+    (root.querySelector('thead th.head') as HTMLElement).click();
+
+    expect(columnWidths()).toEqual(widened);
+  });
+
+  it('grips the column boundaries, which is where the rows are too', () => {
+    update(init(sample));
+    // Gutter (32) + column widths (72, 56), each grip centred on the boundary.
+    expect(handles().map((h) => h.style.left)).toEqual(['101px', '157px']);
+
+    drag(handles()[0], 400);
+    expect(handles().map((h) => h.style.left)).toEqual(['501px', '557px']);
+  });
+
+  it('does not sort when the handle is used', () => {
+    update(init(sample));
+
+    drag(handles()[0], 400);
+    handles()[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(headerCells()).toEqual(['name', 'qty']);
+    expect(gutters()).toEqual(['1', '2', '3']);
+  });
+
+  it('resizes the dragged column alone while wrapped — a hand-set width wins', () => {
+    update(init(sample));
+    wrapButton().click();
+    const [first, second] = columnWidths();
+
+    drag(handles()[1], 400);
+
+    const after = columnWidths();
+    expect(after[0]).toBe(first);
+    expect(px(after[1])).toBe(px(second) + 400);
+  });
+
+  it('drops the widths when the data is replaced', () => {
+    update(init(sample));
+    const before = columnWidths();
+
+    drag(handles()[0], 400);
+    update(init(sample));
+
+    expect(columnWidths()).toEqual(before);
+  });
+
+  it('drops the widths on transpose, where the columns become other columns', () => {
+    update(init(sample));
+
+    drag(handles()[0], 400);
+    transposeButton().click();
+    transposeButton().click();
+
+    expect(columnWidths()).toEqual(['72px', '56px']);
+  });
+});
+
+describe('wrap', () => {
+  const table = () => root.querySelector('table') as HTMLElement;
+  const firstCell = () =>
+    root.querySelector('tbody tr:not(.spacer-row) td:not(.gutter)') as HTMLElement;
+
+  it('marks the button as pressed while wrapping', () => {
+    update(init(sample));
+    expect(wrapButton().getAttribute('aria-pressed')).toBe('false');
+    expect(table().classList.contains('wrap')).toBe(false);
+
+    wrapButton().click();
+    expect(wrapButton().getAttribute('aria-pressed')).toBe('true');
+    expect(table().classList.contains('wrap')).toBe(true);
+  });
+
+  it('gives every column the same width, and restores them on the way back', () => {
+    update(init(sample));
+    const natural = columnWidths();
+    expect(new Set(natural).size).toBe(2);
+
+    wrapButton().click();
+    expect(new Set(columnWidths()).size).toBe(1);
+
+    wrapButton().click();
+    expect(columnWidths()).toEqual(natural);
+  });
+
+  it('measures the virtual window in taller rows while wrapping', () => {
+    update(init(manyRows(100)));
+    const before = trailingSpacer();
+
+    wrapButton().click();
+    expect(trailingSpacer()).toBeGreaterThan(before);
+  });
+
+  it('exposes the full value as a tooltip, since a wrapped cell clips silently', () => {
+    const long = 'x'.repeat(200);
+    update(init([['name'], [long]]));
+    expect(firstCell().title).toBe('');
+
+    wrapButton().click();
+    expect(firstCell().textContent).toBe(long);
+    expect(firstCell().title).toBe(long);
+  });
+
+  it('survives new data, being a display preference rather than a shape', () => {
+    update(init(sample));
+    wrapButton().click();
+    update(init(sample, { delimiter: 'tab' }));
+
+    expect(wrapButton().getAttribute('aria-pressed')).toBe('true');
+    expect(table().classList.contains('wrap')).toBe(true);
+    expect(new Set(columnWidths()).size).toBe(1);
   });
 });
 

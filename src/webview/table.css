@@ -189,6 +189,20 @@ td {
   font-weight: normal;
 }
 
+/* Wrapped mode. Every cell is the same width and the same number of lines tall:
+   a row that grew to fit its own content would break the fixed-height windowing
+   in render.ts, which sets --wrap-row-height from the same constants. */
+table.wrap th,
+table.wrap td {
+  height: var(--wrap-row-height, 58px);
+  line-height: var(--wrap-line-height, 18px);
+  padding: 2px 8px;
+  vertical-align: top;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+}
+
 thead th {
   position: sticky;
   top: 0;
@@ -205,6 +219,43 @@ thead th:hover {
 thead th .arrow {
   margin-left: 4px;
   color: var(--vscode-descriptionForeground);
+}
+
+/* Column resizing. The grips sit in a layer over the whole table rather than in
+   the header cells, so a column can be dragged from any row — the width of the
+   strip and its offsets come from render.ts. The layer itself lets clicks
+   through; only the strips take them. */
+.table-wrap {
+  position: relative;
+  width: max-content;
+}
+
+.resize-handles {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.resize-handles .resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  pointer-events: auto;
+  cursor: col-resize;
+  user-select: none;
+}
+
+.resize-handles .resizer:hover {
+  background: var(--vscode-focusBorder, rgba(128, 128, 128, 0.6));
+}
+
+/* Held on the body so the cursor survives the pointer leaving the grip, and so
+   sweeping across the table does not select its text. */
+body.resizing {
+  cursor: col-resize;
+  user-select: none;
 }
 
 .gutter {

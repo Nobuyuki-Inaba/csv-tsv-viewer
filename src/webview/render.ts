@@ -21,7 +21,25 @@ import {
 
 const ROW_HEIGHT = 22;
 const OVERSCAN = 12;
-const DELIMITER_NAMES: DelimiterName[] = ['comma', 'tab', 'semicolon', 'pipe', 'space'];
+
+/**
+ * Wrapping trades width for height: every column narrows to the same character
+ * count and every row grows to the same number of lines. Uniform on both axes is
+ * the point — a cell tall enough for its own content would make the row heights
+ * vary, and the windowing below can only skip rows it can measure without
+ * laying them out.
+ */
+const WRAP_COLUMNS = 32;
+const WRAP_LINES = 3;
+const WRAP_LINE_HEIGHT = 18;
+const WRAP_PADDING = 4;
+const WRAP_ROW_HEIGHT = WRAP_LINES * WRAP_LINE_HEIGHT + WRAP_PADDING;
+
+/** Narrow enough to tuck a column out of the way, wide enough to grab again. */
+const MIN_COLUMN_WIDTH = 32;
+/** Width of a resize grip, straddling the boundary it sits on. */
+const HANDLE_WIDTH = 7;
+const DELIMITER_NAMES: DelimiterName[] = ['comma', 'tab', 'semicolon', 'pipe', 'space', 'whitespace'];
 
 export interface HostApi {
   postMessage(message: WebviewToHost): void;
@@ -46,6 +64,7 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
   let header: string[] = [];
   let hasHeader = true;
   let transposed = false;
+  let wrapped = false;
   let truncated = false;
   let maxRows = 0;
   let pageSize = 200;
@@ -54,6 +73,8 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
   let filter = '';
   let view: number[] = [];
   let widths: number[] = [];
+  /** Per-column widths in px set by dragging; `null` keeps the automatic one. */
+  let widthOverrides: (number | null)[] = [];
 
   // ── Skeleton ────────────────────────────────────────────────────────────────
 
@@ -69,6 +90,8 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
   headerToggle.type = 'checkbox';
   const transposeButton = document.createElement('button');
   transposeButton.className = 'toggle';
+  const wrapButton = document.createElement('button');
+  wrapButton.className = 'toggle';
   const filterInput = document.createElement('input');
   filterInput.type = 'search';
   filterInput.className = 'filter';
@@ -83,6 +106,7 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
     delimiterLabel,
     headerLabel,
     transposeButton,
+    wrapButton,
     filterInput,
     excelButton,
     markdownButton,
@@ -91,12 +115,17 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
   );
 
   const viewport = el('div', 'viewport');
+  const tableWrap = el('div', 'table-wrap');
   const table = document.createElement('table');
   const colgroup = document.createElement('colgroup');
   const thead = document.createElement('thead');
   const tbody = document.createElement('tbody');
+  // One grip per column boundary, running the whole height of the table so a
+  // column can be resized from any row rather than from the header alone.
+  const handleLayer = el('div', 'resize-handles');
   table.append(colgroup, thead, tbody);
-  viewport.append(table);
+  tableWrap.append(table, handleLayer);
+  viewport.append(tableWrap);
 
   const empty = el('div', 'empty');
   empty.hidden = true;
@@ -115,6 +144,11 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
   footer.append(pager, range, el('span', 'spacer'), status);
 
   root.append(toolbar, viewport, empty, footer);
+
+  // The wrapped row height is shared with the stylesheet from here so the
+  // windowing maths and the rendered rows can never drift apart.
+  root.style.setProperty('--wrap-line-height', `${WRAP_LINE_HEIGHT}px`);
+  root.style.setProperty('--wrap-row-height', `${WRAP_ROW_HEIGHT}px`);
 
   const charWidth = measureCharWidth(table);
 
@@ -139,8 +173,22 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
     filter = '';
     filterInput.value = '';
     page = 0;
+    // The columns are different columns now, so their widths mean nothing.
+    clearColumnWidths();
     renderTransposeField();
     reshape();
+  });
+
+  // Purely a display change: the rows on screen stay the same, so the scroll
+  // position is carried over as a row index rather than a pixel offset.
+  wrapButton.addEventListener('click', () => {
+    const firstVisible = Math.floor(viewport.scrollTop / rowHeight());
+    wrapped = !wrapped;
+    table.classList.toggle('wrap', wrapped);
+    renderWrapField();
+    renderColgroup();
+    viewport.scrollTop = firstVisible * rowHeight();
+    renderWindow();
   });
 
   filterInput.addEventListener('input', () => {
@@ -180,6 +228,7 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
     sort = null;
     filter = '';
     page = 0;
+    clearColumnWidths();
 
     filterInput.value = '';
     filterInput.placeholder = labels.filterPlaceholder;
@@ -197,6 +246,9 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
     renderDelimiterField(data.delimiter);
     renderHeaderField();
     renderTransposeField();
+    // Wrapping is a display preference, not a property of the data, so it
+    // survives a reload or a delimiter change.
+    renderWrapField();
     reshape();
   };
 
@@ -287,18 +339,94 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
     transposeButton.classList.toggle('active', transposed);
   }
 
+  function renderWrapField(): void {
+    wrapButton.textContent = labels.wrap;
+    wrapButton.title = labels.wrapTitle;
+    wrapButton.setAttribute('aria-pressed', String(wrapped));
+    wrapButton.classList.toggle('active', wrapped);
+  }
+
+  /** Height of one data row — the unit `renderWindow` measures the page in. */
+  function rowHeight(): number {
+    return wrapped ? WRAP_ROW_HEIGHT : ROW_HEIGHT;
+  }
+
+  /** Pixel width of a column measured in characters. */
+  function measuredWidth(chars: number): number {
+    return chars * charWidth + 16;
+  }
+
+  /**
+   * The one width every column takes while wrapped, capped at `WRAP_COLUMNS`: a
+   * table whose widest column is narrower than the cap has nothing to gain from
+   * the extra space, and equal columns are what makes the grid readable.
+   */
+  function uniformWidth(): number {
+    return measuredWidth(Math.min(WRAP_COLUMNS, Math.max(...widths, 0)));
+  }
+
+  /**
+   * A width the user dragged wins everywhere, wrapped or not. Uniform columns
+   * are a default worth having, not a rule worth enforcing over a deliberate
+   * choice — and only the column that was dragged changes.
+   */
+  function columnWidth(col: number): number {
+    const chosen = widthOverrides[col];
+    if (chosen != null) return chosen;
+    return wrapped ? uniformWidth() : measuredWidth(widths[col] ?? 0);
+  }
+
+  function gutterWidth(): number {
+    return String(body.length).length * charWidth + 24;
+  }
+
   function renderColgroup(): void {
     colgroup.textContent = '';
 
     const gutter = document.createElement('col');
-    gutter.style.width = `${String(body.length).length * charWidth + 24}px`;
+    gutter.style.width = `${gutterWidth()}px`;
     colgroup.append(gutter);
 
-    for (const width of widths) {
-      const col = document.createElement('col');
-      col.style.width = `${width * charWidth + 16}px`;
-      colgroup.append(col);
+    for (let col = 0; col < widths.length; col++) {
+      const element = document.createElement('col');
+      element.style.width = `${columnWidth(col)}px`;
+      colgroup.append(element);
     }
+
+    renderColumnHandles();
+  }
+
+  /**
+   * Lay the grips over the column boundaries. Rebuilt only when the column count
+   * changes, since this also runs on every mouse move of a drag.
+   */
+  function renderColumnHandles(): void {
+    while (handleLayer.childElementCount > widths.length) {
+      handleLayer.lastElementChild?.remove();
+    }
+    while (handleLayer.childElementCount < widths.length) {
+      handleLayer.append(createResizeHandle(handleLayer.childElementCount));
+    }
+
+    let left = gutterWidth();
+    [...handleLayer.children].forEach((handle, col) => {
+      left += columnWidth(col);
+      const element = handle as HTMLElement;
+      element.style.left = `${Math.round(left - HANDLE_WIDTH / 2)}px`;
+      element.title = labels.resizeColumn;
+    });
+  }
+
+  function createResizeHandle(col: number): HTMLElement {
+    const handle = el('div', 'resizer');
+
+    handle.addEventListener('mousedown', (event) => startResize(event, col));
+    handle.addEventListener('dblclick', (event) => {
+      event.preventDefault();
+      setColumnWidth(col, null);
+    });
+
+    return handle;
   }
 
   function renderHead(): void {
@@ -324,6 +452,39 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
     thead.append(row);
   }
 
+  function startResize(event: MouseEvent, col: number): void {
+    event.preventDefault();
+
+    const startX = event.clientX;
+    const startWidth = columnWidth(col);
+
+    const onMove = (move: MouseEvent): void => {
+      setColumnWidth(col, Math.max(MIN_COLUMN_WIDTH, startWidth + move.clientX - startX));
+    };
+
+    const onUp = (): void => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      document.body.classList.remove('resizing');
+    };
+
+    // The cursor has to survive leaving the handle, and text must not select
+    // while the pointer sweeps across the table.
+    document.body.classList.add('resizing');
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
+  function clearColumnWidths(): void {
+    widthOverrides = [];
+  }
+
+  /** `null` gives the column back to its automatic width. */
+  function setColumnWidth(col: number, px: number | null): void {
+    widthOverrides[col] = px;
+    renderColgroup();
+  }
+
   /** asc → desc → unsorted. Sorting applies across all pages, not just this one. */
   function toggleSort(col: number): void {
     if (sort?.col !== col) {
@@ -346,13 +507,14 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
   function renderWindow(): void {
     const rows = pageSlice(view, page, pageSize);
     const total = rows.length;
-    const start = Math.max(0, Math.floor(viewport.scrollTop / ROW_HEIGHT) - OVERSCAN);
-    const visible = Math.ceil(viewport.clientHeight / ROW_HEIGHT) + OVERSCAN * 2;
+    const height = rowHeight();
+    const start = Math.max(0, Math.floor(viewport.scrollTop / height) - OVERSCAN);
+    const visible = Math.ceil(viewport.clientHeight / height) + OVERSCAN * 2;
     const end = Math.min(total, start + visible);
     const columns = header.length + 1;
 
     const fragment = document.createDocumentFragment();
-    fragment.append(spacerRow(start * ROW_HEIGHT, columns));
+    fragment.append(spacerRow(start * height, columns));
 
     for (let i = start; i < end; i++) {
       const index = rows[i];
@@ -364,15 +526,19 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
 
       for (let col = 0; col < header.length; col++) {
         const cell = document.createElement('td');
+        const value = body[index]?.[col] ?? '';
         // textContent, never innerHTML — cell values are untrusted input.
-        cell.textContent = body[index]?.[col] ?? '';
+        cell.textContent = value;
+        // A fixed row height clips without an ellipsis to give it away, so the
+        // whole value stays reachable on hover.
+        if (wrapped && value !== '') cell.title = value;
         tr.append(cell);
       }
 
       fragment.append(tr);
     }
 
-    fragment.append(spacerRow((total - end) * ROW_HEIGHT, columns));
+    fragment.append(spacerRow((total - end) * height, columns));
 
     tbody.textContent = '';
     tbody.append(fragment);

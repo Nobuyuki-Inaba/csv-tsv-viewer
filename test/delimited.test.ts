@@ -7,6 +7,7 @@ import {
   normalizeWidth,
   generateColumnNames,
   DELIMITERS,
+  WHITESPACE,
 } from '../src/delimited';
 
 describe('parseDelimited', () => {
@@ -117,6 +118,52 @@ describe('parseDelimited with a space delimiter', () => {
   });
 });
 
+describe('parseDelimited with the whitespace delimiter', () => {
+  it('reads a TSV whose tabs were expanded to four spaces', () => {
+    const text = ['name    qty', 'apple pie    30', 'kiwi    9'].join('\n');
+    expect(parseDelimited(text, WHITESPACE)).toEqual([
+      ['name', 'qty'],
+      ['apple pie', '30'],
+      ['kiwi', '9'],
+    ]);
+  });
+
+  it('keeps a lone space inside the cell', () => {
+    expect(parseDelimited('New York  36', WHITESPACE)).toEqual([['New York', '36']]);
+  });
+
+  it('splits on a single tab', () => {
+    expect(parseDelimited('a\tb\tc', WHITESPACE)).toEqual([['a', 'b', 'c']]);
+  });
+
+  it('accepts a mix of tabs and spaces in one gap', () => {
+    expect(parseDelimited('a \t  b', WHITESPACE)).toEqual([['a', 'b']]);
+  });
+
+  it('collapses a run of any width into one separator', () => {
+    expect(parseDelimited('a        b  c', WHITESPACE)).toEqual([['a', 'b', 'c']]);
+  });
+
+  it('treats a leading run as indentation, not an empty first field', () => {
+    expect(parseDelimited('    a  b', WHITESPACE)).toEqual([['a', 'b']]);
+  });
+
+  it('drops trailing padding rather than adding an empty field', () => {
+    expect(parseDelimited('a  b   \nc  d ', WHITESPACE)).toEqual([
+      ['a', 'b'],
+      ['c', 'd'],
+    ]);
+  });
+
+  it('keeps runs inside quoted fields', () => {
+    expect(parseDelimited('"a  b"  c', WHITESPACE)).toEqual([['a  b', 'c']]);
+  });
+
+  it('reduces a line of nothing but whitespace to a blank row', () => {
+    expect(parseDelimited('a  b\n \t \nc  d', WHITESPACE)).toEqual([['a', 'b'], [''], ['c', 'd']]);
+  });
+});
+
 describe('detectDelimiter', () => {
   it('detects comma', () => {
     expect(detectDelimiter('a,b,c\n1,2,3')).toBe('comma');
@@ -160,12 +207,30 @@ describe('detectDelimiter', () => {
     expect(detectDelimiter('a\tb\r\n1\t2\r\n')).toBe('tab');
   });
 
-  it('falls back to space for column-aligned output', () => {
-    expect(detectDelimiter('NAME  QTY\napple  30\nkiwi    9')).toBe('space');
+  it('falls back to whitespace for column-aligned output', () => {
+    expect(detectDelimiter('NAME  QTY\napple  30\nkiwi    9')).toBe('whitespace');
   });
 
-  it('prefers a real delimiter over space', () => {
-    expect(detectDelimiter('a b,c d\ne f,g h')).toBe('comma');
+  it('falls back to whitespace for a TSV whose tabs became spaces', () => {
+    // Cells hold single spaces, so the space delimiter would shred them.
+    expect(detectDelimiter('city    people\nNew York    8\nSalt Lake City    1')).toBe('whitespace');
+  });
+
+  it('falls back to space when the columns are one space apart', () => {
+    expect(detectDelimiter('a b c\n1 2 3\n4 5 6')).toBe('space');
+  });
+
+  it('prefers a real delimiter over whitespace', () => {
+    expect(detectDelimiter('a b,c  d\ne f,g  h')).toBe('comma');
+  });
+
+  it('prefers tab over whitespace when every line has one', () => {
+    expect(detectDelimiter('a  b\tc\nd  e\tf')).toBe('tab');
+  });
+
+  it('does not read prose as whitespace-separated', () => {
+    // A double space after a full stop, but not the same count on every line.
+    expect(detectDelimiter('One.  Two.\nThree.\nFour.  Five.  Six.')).toBe('comma');
   });
 
   it('does not read prose as space-separated', () => {
@@ -250,9 +315,15 @@ describe('generateColumnNames', () => {
 });
 
 describe('DELIMITERS', () => {
-  it('maps names to single characters', () => {
-    for (const char of Object.values(DELIMITERS)) {
+  it('maps every name but whitespace to a single character', () => {
+    for (const [name, char] of Object.entries(DELIMITERS)) {
+      if (name === 'whitespace') continue;
       expect(char).toHaveLength(1);
     }
+  });
+
+  it('carries the whitespace mode as a sentinel no real delimiter can be', () => {
+    expect(DELIMITERS.whitespace).toBe(WHITESPACE);
+    expect(WHITESPACE.length).toBeGreaterThan(1);
   });
 });
