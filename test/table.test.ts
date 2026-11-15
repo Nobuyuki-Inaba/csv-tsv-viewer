@@ -278,3 +278,15 @@ describe('transpose', () => {
     expect(transpose([])).toEqual([]);
   });
 });
+
+describe('very large inputs', () => {
+  const many = Array.from({ length: 200_000 }, (_, i) => [String(i), 'x']);
+
+  it('measures column widths without overflowing the stack', () => {
+    expect(computeColumnWidths(['a', 'b'], many)).toHaveLength(2);
+  });
+
+  it('formats Markdown without overflowing the stack', () => {
+    expect(toMarkdown(['a', 'b'], many).split('\n')).toHaveLength(200_002);
+  });
+});

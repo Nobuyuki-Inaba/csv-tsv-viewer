@@ -79,7 +79,7 @@ export function computeColumnWidths(
   min = 4,
   max = 60
 ): number[] {
-  const width = Math.max(header.length, ...rows.map((r) => r.length), 0);
+  const width = widestRow(header, rows);
   const widths: number[] = [];
 
   for (let col = 0; col < width; col++) {
@@ -91,6 +91,17 @@ export function computeColumnWidths(
   }
 
   return widths;
+}
+
+/**
+ * Length of the longest of `header` and `rows`. A loop rather than
+ * `Math.max(...lengths)`: spreading a large array into call arguments overflows
+ * the stack at around 120,000 elements.
+ */
+function widestRow(header: string[], rows: string[][]): number {
+  let width = header.length;
+  for (const row of rows) if (row.length > width) width = row.length;
+  return width;
 }
 
 /**
@@ -134,8 +145,8 @@ export function toMarkdown(header: string[], rows: string[][]): string {
   const escape = (cell: string): string =>
     cell.replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>').trim();
 
-  const width = Math.max(header.length, ...rows.map((r) => r.length), 0);
-  const line = (cells: string[]): string => {
+  const width = widestRow(header, rows);
+  const line =(cells: string[]): string => {
     const padded = Array.from({ length: width }, (_, i) => escape(cells[i] ?? ''));
     return `| ${padded.join(' | ')} |`;
   };

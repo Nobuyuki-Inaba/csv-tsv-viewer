@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mount } from '../src/webview/render';
+import { mount, MAX_TRANSPOSE_ROWS } from '../src/webview/render';
 import type { InitMessage, WebviewLabels, WebviewToHost } from '../src/shared/protocol';
 
 const labels: WebviewLabels = {
@@ -14,6 +14,7 @@ const labels: WebviewLabels = {
   headerRow: 'Header row',
   transpose: 'Transpose',
   transposeTitle: 'Swap rows and columns.',
+  transposeTooLarge: 'Up to {0} rows.',
   wrap: 'Wrap',
   wrapTitle: 'Wrap long cells at a fixed width.',
   resizeColumn: 'Drag to resize',
@@ -670,5 +671,26 @@ describe('host messages', () => {
     update(init(sample));
     (root.querySelector('button.link') as HTMLButtonElement).click();
     expect(sent).toContainEqual({ type: 'openSettings' });
+  });
+});
+
+describe('large data', () => {
+  it('renders more rows than call arguments can carry', () => {
+    update(init(manyRows(200_000)));
+    expect(root.querySelector('.status')?.textContent).toBe('200000 rows × 2 columns');
+    expect(dataRows().length).toBeGreaterThan(0);
+  });
+
+  it('disables transpose past the row limit and explains why', () => {
+    // `manyRows(n)` is n data rows plus a header; the limit counts every source row.
+    update(init(manyRows(MAX_TRANSPOSE_ROWS - 1)));
+    expect(transposeButton().disabled).toBe(false);
+
+    update(init(manyRows(MAX_TRANSPOSE_ROWS)));
+    expect(transposeButton().disabled).toBe(true);
+    expect(transposeButton().title).toBe(`Up to ${MAX_TRANSPOSE_ROWS} rows.`);
+
+    transposeButton().click();
+    expect(transposeButton().getAttribute('aria-pressed')).toBe('false');
   });
 });

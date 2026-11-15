@@ -21,6 +21,8 @@ export interface WebviewLabels {
   headerRow: string;
   transpose: string;
   transposeTitle: string;
+  /** Tooltip when the data is too long to transpose; `{0}` is the row limit. */
+  transposeTooLarge: string;
   wrap: string;
   wrapTitle: string;
   resizeColumn: string;

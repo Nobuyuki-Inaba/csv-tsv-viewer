@@ -45,3 +45,45 @@ describe('decodeText', () => {
     expect(decodeText(new Uint8Array())).toBe('');
   });
 });
+
+describe('decodeText: mostly-valid UTF-8 and BOM precedence', () => {
+  const concat = (...parts: Uint8Array[]) => new Uint8Array(parts.flatMap((p) => [...p]));
+
+  it('keeps UTF-8 when only a stray byte is invalid', () => {
+    const text = '名前\t値\n東京\t大阪\n'.repeat(5);
+    const bytes = concat(utf8(text), new Uint8Array([0xe9]));
+    expect(decodeText(bytes)).toBe(text + '�');
+  });
+
+  it('keeps UTF-8 when the file is cut off in the middle of a character', () => {
+    const full = utf8('名前,部署\n山田,営業\n');
+    const decoded = decodeText(full.subarray(0, full.length - 2));
+    expect(decoded.startsWith('名前,部署\n山田,')).toBe(true);
+  });
+
+  it('still falls back to Shift_JIS for real Shift_JIS text', () => {
+    // 「名前,東京」in Shift_JIS
+    const bytes = new Uint8Array([0x96, 0xbc, 0x91, 0x4f, 0x2c, 0x93, 0x8c, 0x8b, 0x9e]);
+    expect(decodeText(bytes)).toBe('名前,東京');
+  });
+
+  it('still falls back to Shift_JIS for half-width katakana, whose bytes can form valid UTF-8 pairs', () => {
+    // 「ﾁﾂﾃ」×4 — 0xC2 0xC3 lead bytes followed by 0xC1 etc.
+    const bytes = new Uint8Array([0xc1, 0xc2, 0xc3, 0xc1, 0xc2, 0xc3, 0xc1, 0xc2, 0xc3, 0xc1, 0xc2, 0xc3]);
+    expect(decodeText(bytes)).toBe('ﾁﾂﾃﾁﾂﾃﾁﾂﾃﾁﾂﾃ');
+  });
+
+  it('still falls back to Shift_JIS for ASCII with a few Shift_JIS characters', () => {
+    const bytes = concat(utf8('id,name\n1,'), shiftJisHyou, utf8('\n'));
+    expect(decodeText(bytes)).toBe('id,name\n1,表\n');
+  });
+
+  it('lets a UTF-8 BOM win over a shift_jis setting', () => {
+    expect(decodeText(withBom('a,東京'), 'shift_jis')).toBe('a,東京');
+  });
+
+  it('lets a UTF-16LE BOM win over a utf8 setting', () => {
+    const bytes = new Uint8Array([0xff, 0xfe, 0x61, 0x00, 0x09, 0x00, 0x62, 0x00]);
+    expect(decodeText(bytes, 'utf8')).toBe('a\tb');
+  });
+});

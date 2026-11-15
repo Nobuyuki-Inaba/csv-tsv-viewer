@@ -39,6 +39,8 @@ const WRAP_ROW_HEIGHT = WRAP_LINES * WRAP_LINE_HEIGHT + WRAP_PADDING;
 const MIN_COLUMN_WIDTH = 32;
 /** Width of a resize grip, straddling the boundary it sits on. */
 const HANDLE_WIDTH = 7;
+/** Most source rows the transpose button accepts — see `canTranspose`. */
+export const MAX_TRANSPOSE_ROWS = 1000;
 const DELIMITER_NAMES: DelimiterName[] = ['comma', 'tab', 'semicolon', 'pipe', 'space', 'whitespace'];
 
 export interface HostApi {
@@ -168,6 +170,7 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
   // columns) nor the filter (a selection of the old rows) still means anything.
   // Both reset, exactly as they do when fresh data arrives.
   transposeButton.addEventListener('click', () => {
+    if (!transposed && !canTranspose()) return;
     transposed = !transposed;
     sort = null;
     filter = '';
@@ -332,9 +335,22 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
     headerText.textContent = labels.headerRow;
   }
 
+  /**
+   * Transposing turns every source row into a column, and columns are not
+   * windowed — each one costs a `<col>`, a header cell and a grip, plus a cell
+   * in every rendered row. Past `MAX_TRANSPOSE_ROWS` that freezes the view.
+   */
+  function canTranspose(): boolean {
+    return sourceRows.length <= MAX_TRANSPOSE_ROWS;
+  }
+
   function renderTransposeField(): void {
+    const allowed = transposed || canTranspose();
     transposeButton.textContent = labels.transpose;
-    transposeButton.title = labels.transposeTitle;
+    transposeButton.disabled = !allowed;
+    transposeButton.title = allowed
+      ? labels.transposeTitle
+      : format(labels.transposeTooLarge, MAX_TRANSPOSE_ROWS);
     transposeButton.setAttribute('aria-pressed', String(transposed));
     transposeButton.classList.toggle('active', transposed);
   }
@@ -362,7 +378,10 @@ export function mount(root: HTMLElement, api: HostApi): (data: InitMessage) => v
    * the extra space, and equal columns are what makes the grid readable.
    */
   function uniformWidth(): number {
-    return measuredWidth(Math.min(WRAP_COLUMNS, Math.max(...widths, 0)));
+    // Reduced rather than spread: `Math.max(...widths)` overflows the stack on
+    // a very wide table.
+    const widest = widths.reduce((max, w) => (w > max ? w : max), 0);
+    return measuredWidth(Math.min(WRAP_COLUMNS, widest));
   }
 
   /**

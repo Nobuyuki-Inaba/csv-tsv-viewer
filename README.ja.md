@@ -55,6 +55,7 @@ CSV・TSV データを VS Code 上で表として表示します。エディタ�
 - 絞り込みボックスは全列を大文字小文字を無視して部分一致で検索します。
 - **縦横変換** — 行と列を入れ替えます。列数の多い 1 件のレコードを縦に読みたいときに便利です。
   もう一度押すと元に戻ります。ソートと絞り込みは、入れ替え前の向きを指すものなので解除されます。
+  すべての行が列になるため、1,000 行までのデータで使えます。
 - 列の境界をドラッグすると列幅を自由に変えられます。つまみは表の高さいっぱいにあるので、ヘッダ
   だけでなくデータ行のどこからでも掴めます。ダブルクリックすると自動計算の幅に戻ります。変更した
   幅はソート・絞り込み・ページ移動をまたいで保持され、データの読み込み直しや縦横変換でリセット
@@ -87,7 +88,7 @@ CSV・TSV データを VS Code 上で表として表示します。エディタ�
 | `csvTsvViewer.selectionDelimiter` | `auto` | 選択範囲・クリップボードの区切り文字。`auto` / `comma` / `tab` / `semicolon` / `pipe` / `space` / `whitespace`。 |
 | `csvTsvViewer.hasHeader` | `true` | 最初の行をヘッダ行として扱う。 |
 | `csvTsvViewer.pageSize` | `200` | 1ページに表示する行数。 |
-| `csvTsvViewer.encoding` | `auto` | ファイルの文字エンコーディング。`auto`（BOM → UTF-8 → Shift_JIS の順に判定）/ `utf8` / `shift_jis`。 |
+| `csvTsvViewer.encoding` | `auto` | ファイルの文字エンコーディング。`auto`（BOM → UTF-8 → Shift_JIS の順に判定）/ `utf8` / `shift_jis`。BOM があれば常にそれに従い、不正なバイトが少しだけの UTF-8 は UTF-8 のまま読みます。 |
 | `csvTsvViewer.followSelection` | `true` | エディタの選択範囲が変わったらプレビューを更新する。 |
 | `csvTsvViewer.maxRows` | `100000` | 表示する最大行数。超過分は警告を出して切り捨てます。 |
 | `csvTsvViewer.language` | `auto` | UI の表示言語。`auto` / `en` / `ja`。 |

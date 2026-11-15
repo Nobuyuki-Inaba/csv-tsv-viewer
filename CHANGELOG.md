@@ -3,6 +3,33 @@
 All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.0.4] - 2026-11-15
+
+### Fixed
+
+- A field that opens with `"` but is not properly closed — an unescaped quote in a TSV export, such
+  as `"hello` or `"Quoted" title` — is now read as literal text. Previously it swallowed the rest of
+  the file into a single cell, or split the cell and shifted every later column.
+- Text after a closing quote is kept: `"a"b,c` no longer drops the `b` and adds an empty column.
+- Auto-detection (selection and clipboard previews):
+  - Detects TSV whose lines do not all contain a tab, such as rows with trimmed trailing cells,
+    instead of falling back to comma.
+  - Prefers tab when it splits every line consistently, so TSV cells containing commas
+    (`Tokyo, Japan`) are no longer split on the comma.
+  - A quote in the middle of a cell (`5" disk`) no longer makes the sampler read the whole document.
+- A UTF-8 file with only a few invalid bytes, such as one cut off mid-character, stays UTF-8
+  instead of being decoded as Shift_JIS and garbled.
+- A BOM now takes precedence over the `csvTsvViewer.encoding` setting.
+- Inputs above about 120,000 rows no longer leave the table blank with a stack overflow.
+- Every trailing blank line is dropped, not just the last one.
+- When a file changes on disk several times in quick succession, the view always ends on the latest
+  content.
+
+### Changed
+
+- **Transpose** is limited to data of up to 1,000 rows. Each row becomes a column, and columns are
+  not virtualized, so larger data froze the view.
+
 ## [0.0.3] - 2026-08-21
 
 ### Added

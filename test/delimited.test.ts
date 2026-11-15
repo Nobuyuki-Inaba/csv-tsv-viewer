@@ -327,3 +327,102 @@ describe('DELIMITERS', () => {
     expect(WHITESPACE.length).toBeGreaterThan(1);
   });
 });
+
+describe('parseDelimited: quotes that do not form a quoted field', () => {
+  it('reads an unclosed opening quote in TSV as literal text instead of swallowing the file', () => {
+    expect(parseDelimited('"hello\tx\nnext\ty\nz\tw\n', '\t')).toEqual([
+      ['"hello', 'x'],
+      ['next', 'y'],
+      ['z', 'w'],
+    ]);
+  });
+
+  it('keeps a TSV cell that only starts with a quoted word intact', () => {
+    expect(parseDelimited('"Quoted" title\tx', '\t')).toEqual([['"Quoted" title', 'x']]);
+  });
+
+  it('does not pair a stray opening quote with a quote on a later line', () => {
+    expect(parseDelimited('"a\tb\n5" disk\tc\n', '\t')).toEqual([
+      ['"a', 'b'],
+      ['5" disk', 'c'],
+    ]);
+  });
+
+  it('keeps the text after a closing quote in CSV rather than dropping a character', () => {
+    expect(parseDelimited('"a"b,c', ',')).toEqual([['"a"b', 'c']]);
+    expect(parseDelimited('"a" ,c', ',')).toEqual([['"a" ', 'c']]);
+  });
+
+  it('keeps the text after a closing quote in whitespace mode', () => {
+    expect(parseDelimited('"5" disk  x', WHITESPACE)).toEqual([['"5" disk', 'x']]);
+  });
+
+  it('still reads a quoted field followed by trailing padding in whitespace mode', () => {
+    expect(parseDelimited('"a b"  c \n', WHITESPACE)).toEqual([['a b', 'c']]);
+    expect(parseDelimited('c  "a b" \n', WHITESPACE)).toEqual([['c', 'a b']]);
+  });
+
+  it('still reads properly quoted fields, empty ones included', () => {
+    expect(parseDelimited('"",x\n"a""b",y', ',')).toEqual([
+      ['', 'x'],
+      ['a"b', 'y'],
+    ]);
+  });
+
+  it('parses a large TSV with an unclosed quote in linear time', () => {
+    const body = 'a\tb\tc\n'.repeat(200_000);
+    const started = Date.now();
+    const rows = parseDelimited('"' + body, '\t');
+    expect(rows).toHaveLength(200_000);
+    expect(rows[0]).toEqual(['"a', 'b', 'c']);
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+});
+
+describe('parseDelimited: trailing blank lines', () => {
+  it('drops every trailing blank line, not just the last', () => {
+    expect(parseDelimited('a\tb\nc\td\n\n\n', '\t')).toEqual([
+      ['a', 'b'],
+      ['c', 'd'],
+    ]);
+  });
+
+  it('keeps blank lines in the middle', () => {
+    expect(parseDelimited('a\n\nb\n\n', ',')).toEqual([['a'], [''], ['b']]);
+  });
+});
+
+describe('detectDelimiter: TSV edge cases', () => {
+  it('detects ragged TSV where some lines have no tab at all', () => {
+    expect(detectDelimiter('id\tname\tnote\n1\tfoo\tx\n2\n3\tbar\ty\n')).toBe('tab');
+    expect(detectDelimiter('h1\th2\th3\nv1\tv2\nv1\tv2\tv3\nv1\n')).toBe('tab');
+  });
+
+  it('prefers tab when TSV cells contain commas', () => {
+    expect(detectDelimiter('Tokyo, Japan\t1\nOsaka, Japan\t2\n')).toBe('tab');
+    expect(detectDelimiter('Tokyo, Japan, Asia\t13960000')).toBe('tab');
+  });
+
+  it('ignores a quote in the middle of a cell', () => {
+    expect(detectDelimiter('size\tname\n5" disk\ta\n3" disk\tb\n')).toBe('tab');
+  });
+
+  it('is not thrown by an unclosed quote at the start', () => {
+    expect(detectDelimiter('"id,name\n1,foo\n2,bar\n')).toBe('comma');
+  });
+
+  it('samples a huge text with a stray quote without scanning all of it', () => {
+    const text = '"x\t' + 'a\tb\tc\n'.repeat(2_000_000);
+    const started = Date.now();
+    expect(detectDelimiter(text)).toBe('tab');
+    expect(Date.now() - started).toBeLessThan(500);
+  });
+
+  it('still leaves prose with a few commas as comma, not a partial tab match', () => {
+    expect(detectDelimiter('Hello, world.\nThis is fine.')).toBe('comma');
+  });
+
+  it('still prefers the whitespace fallback over a delimiter missing from half the lines', () => {
+    expect(detectDelimiter('NAME  NOTE\napple  red, sweet\nkiwi  green')).toBe('whitespace');
+  });
+});

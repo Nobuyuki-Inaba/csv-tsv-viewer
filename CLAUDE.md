@@ -79,6 +79,10 @@ Marketplace under MIT, so anything bundled must be permissively licensed.
   `detectDelimiter`'s scoring loop and reachable only through the strict `looksWhitespaceSeparated`
   / `looksSpaceSeparated` fallbacks, tried in that order — scoring them against the punctuation
   delimiters would turn every prose selection into a wide table.
+- A field counts as quoted only when its opening `"` has a closing quote followed by a delimiter or
+  a line end (`quotedEnd` in `delimited.ts`); anything else is literal text. Do not relax this back
+  to plain RFC 4180: unescaped quotes are routine in TSV exports, and an unpaired one would swallow
+  the rest of the file into one cell. Detection applies the same rule before the delimiter is known.
 - The grid is hand-rolled in `src/webview/`, not a third-party grid library.
 - Encoding uses the platform `TextDecoder` (which includes `shift_jis`).
 

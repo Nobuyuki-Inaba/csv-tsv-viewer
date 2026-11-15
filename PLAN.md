@@ -184,8 +184,8 @@ that `npm run package` produces, so no publish token lives in CI.
 1. `vscode.window.activeTextEditor`; error toast if none (diagramix pattern, but via `msg.*` i18n).
 2. `editor.document.getText(editor.selection)`; empty → fall back to whole document (configurable, default: fall back).
 3. **Delimiter**: `csvTsvViewer.selectionDelimiter` = `auto` (default) | `comma` | `tab` | `semicolon` | `pipe`.
-   `auto` = count unquoted candidates in the first ~20 lines, pick the one with the most consistent per-line count (tie → comma). Pure function in `delimited.ts`, unit-tested.
-4. `parseDelimited(text, delim)` — port of `CsvUtils.parseCsv` with the `,` literal replaced by a parameter. Keeps RFC4180 quote handling: `""` escapes, embedded newlines, CRLF, trailing-empty-row trim.
+   `auto` = count unquoted candidates in the first ~20 lines, pick the one with the most consistent per-line count. A tab that splits every line consistently wins outright (TSV cells often hold commas); other ties → SCORED order. A delimiter missing from some lines is kept in reserve, used only if nothing fits every line and the whitespace/space fallbacks fail. Pure function in `delimited.ts`, unit-tested.
+4. `parseDelimited(text, delim)` — port of `CsvUtils.parseCsv` with the `,` literal replaced by a parameter. Keeps RFC4180 quote handling: `""` escapes, embedded newlines, CRLF, trailing-empty-row trim. *v0.0.4:* a field is quoted only if its closing quote is followed by a delimiter or line end; otherwise the field is literal, so an unescaped `"` in a TSV can no longer swallow the rest of the file.
 5. Create panel (`previewPanel.ts`), post `{type:'render', rows, hasHeader}` on `ready`.
 6. **Live re-render**: `onDidChangeTextEditorSelection` on the source editor re-posts rows while the panel is open (debounced 150 ms). Behind `csvTsvViewer.followSelection`, default `true`.
 
@@ -228,7 +228,7 @@ that `npm run package` produces, so no publish token lives in CI.
 
 - `CsvViewProvider implements vscode.CustomReadonlyEditorProvider<CsvDocument>` — read-only, so no `onDidChangeCustomDocument` / save plumbing (much smaller than `ExcelEditorProvider`'s 695 lines).
 - `openCustomDocument`: `vscode.workspace.fs.readFile`, decode, parse. Delimiter from extension (`.tsv`/`.tab` → tab, `.csv` → comma), overridable per-tab from the webview toolbar.
-- Encoding: `csvTsvViewer.encoding` = `auto` | `utf8` | `shift_jis`. `auto` = UTF-8 BOM → UTF-8; otherwise UTF-8 decode with fatal check, fall back to Shift_JIS via `TextDecoder('shift_jis')` (built into Node/Electron, no dep).
+- Encoding: `csvTsvViewer.encoding` = `auto` | `utf8` | `shift_jis`. `auto` = UTF-8 BOM → UTF-8; otherwise UTF-8 decode with fatal check, fall back to Shift_JIS via `TextDecoder('shift_jis')` (built into Node/Electron, no dep). *v0.0.4:* a BOM wins over the setting, and UTF-8 with at most one invalid sequence per four valid non-ASCII characters stays UTF-8 (Shift_JIS measures below 0.1 valid per invalid).
 - Command handler signature `(uri?: vscode.Uri, uris?: vscode.Uri[])` — handles Explorer multi-select (open each), falls back to `activeTextEditor.document.uri`, then delegates to `vscode.commands.executeCommand('vscode.openWith', uri, 'csvTsvViewer.tableView')`.
 - `onDidChangeTextDocument` / a `FileSystemWatcher` reloads the tab when the file changes on disk.
 

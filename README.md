@@ -56,6 +56,7 @@ All three entry points share one view:
 - Filter box, matching case-insensitively across every column.
 - **Transpose** — swap rows and columns, for reading one wide record down the screen. Click again
   to swap back. The sort and filter reset, because both referred to the previous orientation.
+  Available for data of up to 1,000 rows, since every row becomes a column.
 - Drag a column boundary to set its width by hand. The grip runs the full height of the table, so
   it works from any row and not just the header; double-click a boundary to give that column back
   to its automatic width. Widths survive sorting, filtering and paging, and reset when the data is
@@ -90,7 +91,7 @@ via the right-click command or *Reopen Editor With…*.
 | `csvTsvViewer.selectionDelimiter` | `auto` | Delimiter for selection and clipboard previews: `auto`, `comma`, `tab`, `semicolon`, `pipe`, `space`, `whitespace`. |
 | `csvTsvViewer.hasHeader` | `true` | Treat the first row as a header row. |
 | `csvTsvViewer.pageSize` | `200` | Rows displayed per page. |
-| `csvTsvViewer.encoding` | `auto` | File encoding: `auto` (BOM, then UTF-8, then Shift_JIS), `utf8`, `shift_jis`. |
+| `csvTsvViewer.encoding` | `auto` | File encoding: `auto` (BOM, then UTF-8, then Shift_JIS), `utf8`, `shift_jis`. A BOM always wins; UTF-8 with only a few bad bytes stays UTF-8. |
 | `csvTsvViewer.followSelection` | `true` | Repaint the preview when the editor selection changes. |
 | `csvTsvViewer.maxRows` | `100000` | Maximum rows displayed; larger inputs are truncated with a warning. |
 | `csvTsvViewer.language` | `auto` | UI language: `auto`, `en`, `ja`. |

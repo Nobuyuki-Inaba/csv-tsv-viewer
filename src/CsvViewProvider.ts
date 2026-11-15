@@ -62,8 +62,15 @@ export class CsvViewProvider implements vscode.CustomReadonlyEditorProvider<CsvD
         posixBasename(document.uri.path)
       )
     );
+    // Saves can fire several change events in quick succession, and the reads
+    // they start may finish out of order. Only the latest read is shown, so an
+    // older snapshot can never overwrite a newer one.
+    let generation = 0;
     watcher.onDidChange(async () => {
-      document.text = await readText(document.uri);
+      const mine = ++generation;
+      const text = await readText(document.uri);
+      if (mine !== generation) return;
+      document.text = text;
       view.refresh();
     });
     disposables.push(watcher);

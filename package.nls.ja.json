@@ -5,7 +5,7 @@
   "config.selectionDelimiter.description": "選択範囲またはクリップボードをプレビューする際の区切り文字。\"auto\" は内容から自動判定し、他の区切り文字が当てはまらない場合にのみ \"whitespace\"、次いで \"space\" を選びます。\"whitespace\" はタブまたは 2 個以上の連続スペースで区切り、スペース 1 個はセルの中身として残します（タブがスペースに展開された TSV 向け）。\"space\" は連続するスペースをまとめて 1 つの区切りとして扱います（桁揃えされた出力向け）。",
   "config.hasHeader.description": "最初の行をヘッダ行として扱います。",
   "config.pageSize.description": "1ページに表示する行数。",
-  "config.encoding.description": "ファイルを開く際の文字エンコーディング。\"auto\" は BOM を優先し、UTF-8 で読めない場合は Shift_JIS として解釈します。",
+  "config.encoding.description": "ファイルを開く際の文字エンコーディング。\"auto\" は BOM を優先し、UTF-8 で読めない場合は Shift_JIS として解釈します（不正なバイトが少しだけなら UTF-8 のまま）。BOM がある場合はこの設定より BOM が優先されます。",
   "config.followSelection.description": "エディタの選択範囲が変わったときにプレビューを自動更新します。",
   "config.maxRows.description": "表示する最大行数。これを超える行は切り捨てられます。",
   "config.language.description": "UI の表示言語。\"auto\" は VS Code の表示言語に従います。\"en\"（英語）または \"ja\"（日本語）を指定して上書きできます。"
